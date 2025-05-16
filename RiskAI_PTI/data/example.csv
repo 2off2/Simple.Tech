@@ -1,0 +1,4 @@
+data;descricao;entrada;saida;id_cliente;data_vencimento;data_pagamento;valor_fatura
+01/01/2023;Venda inicial;1.000,50;0,00;C001;15/01/2023;10/01/2023;1000,50
+02/01/2023;Pagamento fornecedor;0,00;250,30;F001;10/01/2023;10/01/2023;250,30
+03/01/2023;Receita serviço;500,00;50,00;C002;20/01/2023;;500,00
