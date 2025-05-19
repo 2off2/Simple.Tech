@@ -105,7 +105,7 @@ with st.sidebar.expander("Carregar arquivo CSV", expanded=False):
                         st.session_state.processed_data_preview = None
                         st.sidebar.warning("Não foi possível buscar a prévia dos dados processados.")
                 elif api_response and api_response.get("error"):
-                    st.sidebar.error(f"Erro da API: {api_response.get(\'error\')}")
+                    st.sidebar.error(f"Erro da API: {api_response.get('error')}")
                     st.session_state.uploaded_file_name = None
                     st.session_state.processed_data_preview = None
                 else:

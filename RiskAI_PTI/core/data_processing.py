@@ -114,21 +114,6 @@ if __name__ == "__main__":
     # ou relativo a `core/` se executar de dentro da pasta `core/`.
     # Para testes robustos, use caminhos absolutos ou fixtures em um framework de teste.
     caminho_exemplo = "/Users/hp/Downloads/riskai/RiskAI_PTI/data/example.csv" 
-# Criar um CSV de exemplo para teste rápido se não existir
-    try:
-        pd.DataFrame({
-            "data": ["01/01/2023", "02/01/2023", "03/01/2023"],
-            "descricao": ["Venda inicial", "Pagamento fornecedor", "Receita serviço"],
-            "entrada": ["1.000,50", "0,00", "500,00"],
-            "saida": ["0,00", "250,30", "50,00"],
-            "id_cliente": ["C001", "F001", "C002"],
-            "data_vencimento": ["15/01/2023", "10/01/2023", "20/01/2023"],
-            "data_pagamento": ["10/01/2023", "10/01/2023", None],
-            "valor_fatura": ["1000,50", "250,30", "500,00"]
-        }).to_csv(caminho_exemplo, index=False, sep=";")
-        print(f"Arquivo de exemplo criado em {caminho_exemplo}")
-    except Exception as e:
-        print(f"Não foi possível criar o arquivo de exemplo: {e}")
 
     dados_processados = processar_arquivo_completo(caminho_exemplo)
 
