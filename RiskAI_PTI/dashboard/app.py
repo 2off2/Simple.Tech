@@ -8,7 +8,7 @@ API_BASE_URL = "http://localhost:8000" # Assume que a API FastAPI está rodando 
 
 # --- Configuração da Página Principal do Streamlit ---
 st.set_page_config(
-    page_title="RiskAI - Dashboard Financeiro",
+    page_title="Simple - Dashboard Financeiro",
     page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -52,9 +52,9 @@ def get_processed_data_from_api(limit=5):
 # Esta será a página inicial se você não usar a estrutura de `pages/` para a primeira página,
 # ou pode ser uma página de "Sobre" ou "Home" se você tiver outras páginas em `pages/`.
 
-st.title("Bem-vindo ao RiskAI  финансовый риск-анализатор")
+st.title("Bem-vindo a Simple")
 st.markdown("""
-RiskAI é sua ferramenta inteligente para análise preditiva de fluxo de caixa, identificação de riscos financeiros e simulação de cenários de negócios. 
+Simple é sua ferramenta inteligente para análise preditiva de fluxo de caixa, identificação de riscos financeiros e simulação de cenários de negócios. 
 Navegue pelas seções no menu lateral para explorar as funcionalidades.
 
 **Principais Funcionalidades:**
@@ -67,7 +67,7 @@ Navegue pelas seções no menu lateral para explorar as funcionalidades.
 Comece fazendo o upload dos seus dados na página "1. Upload de Dados".
 """)
 
-st.sidebar.image("https://img.icons8.com/plasticine/100/000000/financial-growth-analysis.png", caption="RiskAI v0.1" )
+st.sidebar.image("https://img.icons8.com/plasticine/100/000000/financial-growth-analysis.png", caption="Simple v0.1" )
 st.sidebar.markdown("--- ")
 st.sidebar.header("Navegação Principal")
 # O Streamlit criará automaticamente a navegação para os arquivos em `pages/`.
@@ -137,9 +137,10 @@ if st.session_state.show_full_data and st.session_state.uploaded_file_name:
                 st.error(st.session_state.api_error)
 
 st.markdown("--- ")
-st.caption("RiskAI PTI - Desenvolvimento de Software com IA - 2024")
+st.caption("Simple PTI - Desenvolvimento de Software com IA - 2024")
 
 # Para executar esta aplicação Streamlit:
 # 1. Certifique-se de que a API FastAPI (api/main.py) está rodando.
 # 2. No terminal, na raiz do projeto, execute: streamlit run dashboard/app.py
 
+#streamlit run "c:/Users/23011372/Documents/Simple_Tech_2/RiskAI_PTI/dashboard/app.py"

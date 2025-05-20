@@ -163,30 +163,30 @@ if st.session_state.simulation_summary is not None:
     with col_res1:
         st.metric(
             label="Prob. Saldo Negativo (Final)", 
-            value=f"{summary.get(	"prob_saldo_negativo_final	", 0)*100:.2f}%"
+            value=f"{summary.get(	'prob_saldo_negativo_final	', 0)*100:.2f}%"
         )
         st.metric(
             label="Valor Mínimo Esperado (P5)", 
-            value=f"R$ {summary.get(	"valor_minimo_esperado	", 0):,.2f}"
+            value=f"R$ {summary.get(	'valor_minimo_esperado	', 0):,.2f}"
         )
     with col_res2:
         st.metric(
             label="Prob. Saldo Negativo (Qualquer Momento)", 
-            value=f"{summary.get(	"prob_saldo_negativo_qualquer_momento	", 0)*100:.2f}%"
+            value=f"{summary.get(	'prob_saldo_negativo_qualquer_momento	', 0)*100:.2f}%"
         )
         st.metric(
             label="Valor Mediano Esperado (P50)", 
-            value=f"R$ {summary.get(	"valor_mediano_esperado	", 0):,.2f}"
+            value=f"R$ {summary.get(	'valor_mediano_esperado	', 0):,.2f}"
         )
     with col_res3:
         dia_maior_prob_neg = pd.to_datetime(summary.get("dia_maior_prob_negativo")).strftime("%d/%m/%Y") if summary.get("dia_maior_prob_negativo") else "N/A"
         st.metric(
             label=f"Dia Maior Prob. Saldo Negativo ({dia_maior_prob_neg})", 
-            value=f"{summary.get(	"valor_maior_prob_negativo	", 0)*100:.2f}%"
+            value=f"{summary.get(	'valor_maior_prob_negativo	', 0)*100:.2f}%"
         )
         st.metric(
             label="Valor Máximo Esperado (P95)", 
-            value=f"R$ {summary.get(	"valor_maximo_esperado	", 0):,.2f}"
+            value=f"R$ {summary.get(	'valor_maximo_esperado	', 0):,.2f}"
         )
     
     # Gráfico da Simulação (se os dados estiverem disponíveis)
@@ -221,5 +221,5 @@ if st.session_state.simulation_summary is not None:
 
 # --- Rodapé ---
 st.markdown("---")
-st.caption(f"RiskAI - Simulação de Cenários • Última atualização: {datetime.now().strftime(	"%Y-%m-%d %H:%M	")}")
+st.caption(f"RiskAI - Simulação de Cenários • Última atualização: {datetime.now().strftime(	'%Y-%m-%d %H:%M	')}")
 

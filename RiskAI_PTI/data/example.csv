@@ -1,40 +1,108 @@
-data;descricao;entrada;saida;id_cliente;data_vencimento;data_pagamento;valor_fatura
-2023-01-05;Venda produto X - Cliente A;12500.00;0;CLI001;2023-01-05;2023-01-05;12500.00
-2023-01-05;Pagamento aluguel;0;4500.00;;2023-01-05;2023-01-05;4500.00
-2023-01-06;Compra matéria-prima;0;3200.00;;2023-01-06;2023-01-06;3200.00
-2023-01-10;Salários equipe;0;18500.00;;2023-01-10;2023-01-10;18500.00
-2023-01-15;Venda serviço Y - Cliente B;8200.00;0;CLI002;2023-01-15;2023-01-20;8200.00
-2023-01-18;Pagamento fornecedor Alpha;0;7500.00;;2023-01-18;2023-01-18;7500.00
-2023-01-25;Parcela 1/3 - Cliente C;4000.00;0;CLI003;2023-01-25;2023-02-05;4000.00
-2023-01-30;Manutenção equipamentos;0;3200.00;;2023-01-30;2023-01-30;3200.00
-2023-02-05;Venda produto Z - Cliente D;9800.00;0;CLI004;2023-02-05;;9800.00
-2023-02-05;Pagamento aluguel;0;4500.00;;2023-02-05;2023-02-05;4500.00
-2023-02-10;Salários equipe;0;18500.00;;2023-02-10;2023-02-10;18500.00
-2023-02-12;Recebimento atrasado Cliente A;12500.00;0;CLI001;2023-01-05;2023-02-12;12500.00
-2023-02-15;Pacote premium - Cliente E;15200.00;0;CLI005;2023-02-15;2023-02-15;15200.00
-2023-02-20;Pagamento fornecedor Beta;0;6800.00;;2023-02-20;2023-02-20;6800.00
-2023-02-28;Parcela 2/3 - Cliente C;4000.00;0;CLI003;2023-02-25;2023-02-28;4000.00
-2023-03-05;Venda serviço X - Cliente F;11200.00;0;CLI006;2023-03-05;;11200.00
-2023-03-05;Pagamento aluguel;0;4500.00;;2023-03-05;2023-03-05;4500.00
-2023-03-10;Salários + benefícios;0;19500.00;;2023-03-10;2023-03-10;19500.00
-2023-03-15;Promoção verão - Cliente G;28400.00;0;CLI007;2023-03-15;2023-03-18;28400.00
-2023-03-18;Compra estoque sazonal;0;12500.00;;2023-03-18;2023-03-18;12500.00
-2023-03-25;Parcela 3/3 - Cliente C;4000.00;0;CLI003;2023-03-25;;4000.00
-2023-04-05;Venda produto Y - Cliente H;8700.00;0;CLI008;2023-04-05;2023-04-10;8700.00
-2023-04-05;Pagamento aluguel + reajuste;0;4800.00;;2023-04-05;2023-04-05;4800.00
-2023-04-10;Salários equipe;0;18500.00;;2023-04-10;2023-04-10;18500.00
-2023-04-12;Recebimento atrasado Cliente B;8200.00;0;CLI002;2023-01-15;2023-04-12;8200.00
-2023-04-15;Venda serviço Z - Cliente I;10500.00;0;CLI009;2023-04-15;;10500.00
-2023-04-22;Impostos trimestrais;0;12800.00;;2023-04-22;2023-04-22;12800.00
-2023-05-05;Venda produto X - Cliente J;13200.00;0;CLI010;2023-05-05;2023-05-05;13200.00
-2023-05-05;Pagamento aluguel;0;4800.00;;2023-05-05;2023-05-05;4800.00
-2023-05-10;Salários + horas extras;0;21500.00;;2023-05-10;2023-05-10;21500.00
-2023-05-15;Contrato anual - Cliente K;45000.00;0;CLI011;2023-05-15;2023-05-20;45000.00
-2023-05-20;Adiantamento fornecedores;0;12000.00;;2023-05-20;2023-05-20;12000.00
-2023-05-25;Manutenção preventiva;0;5800.00;;2023-05-25;2023-05-25;5800.00
-2023-06-05;Venda produto W - Cliente L;9500.00;0;CLI012;2023-06-05;;9500.00
-2023-06-05;Pagamento aluguel;0;4800.00;;2023-06-05;2023-06-05;4800.00
-2023-06-10;Salários equipe;0;18500.00;;2023-06-10;2023-06-10;18500.00
-2023-06-15;Dia dos namorados - Cliente M;32600.00;0;CLI013;2023-06-15;2023-06-18;32600.00
-2023-06-20;Investimento marketing;0;8500.00;;2023-06-20;2023-06-20;8500.00
-2023-06-28;Recebimento atrasado Cliente D;9800.00;0;CLI004;2023-02-05;2023-06-28;9800.00
+data;descricao;entrada;saida;saldo;;;
+05/01/2022 00:00;Venda cliente A - produto X;1250000;0;1250000;;;
+05/01/2022 00:00;Pagamento aluguel;0;450000;800000;;;
+06/01/2022 00:00;Compra matéria-prima;0;320000;480000;;;
+10/01/2022 00:00;Salários equipe;0;1850000;-1370000;;;
+15/01/2022 00:00;Venda cliente B - serviço Y;820000;0;-550000;;;
+18/01/2022 00:00;Pagamento fornecedor Alpha;0;750000;-1300000;;;
+25/01/2022 00:00;Recebimento cliente C - parcela 1/3;400000;0;-900000;;;
+30/01/2022 00:00;Manutenção equipamentos;0;320000;-1220000;;;
+05/02/2022 00:00;Venda cliente D - produto Z;980000;0;-240000;;;
+05/02/2022 00:00;Pagamento aluguel;0;450000;-690000;;;
+10/02/2022 00:00;Salários equipe;0;1850000;-2540000;;;
+12/02/2022 00:00;Recebimento atrasado cliente A;1250000;0;-1290000;;;
+15/02/2022 00:00;Venda cliente E - pacote premium;1520000;0;230000;;;
+20/02/2022 00:00;Pagamento fornecedor Beta;0;680000;-450000;;;
+28/02/2022 00:00;Recebimento cliente C - parcela 2/3;400000;0;-50000;;;
+05/03/2022 00:00;Venda cliente F - serviço X;1120000;0;1070000;;;
+05/03/2022 00:00;Pagamento aluguel;0;450000;620000;;;
+10/03/2022 00:00;Salários equipe + benefícios;0;1950000;-1330000;;;
+15/03/2022 00:00;Venda sazonal - promoção verão;2840000;0;1510000;;;
+18/03/2022 00:00;Compra estoque sazonal;0;1250000;260000;;;
+25/03/2022 00:00;Recebimento cliente C - parcela 3/3;400000;0;660000;;;
+05/04/2022 00:00;Venda cliente G - produto Y;870000;0;1530000;;;
+05/04/2022 00:00;Pagamento aluguel + reajuste;0;480000;1050000;;;
+10/04/2022 00:00;Salários equipe;0;1850000;-800000;;;
+12/04/2022 00:00;Recebimento cliente B - atraso 30d;820000;0;20000;;;
+15/04/2022 00:00;Venda cliente H - serviço Z;1050000;0;1070000;;;
+22/04/2022 00:00;Pagamento impostos trimestrais;0;1280000;-210000;;;
+05/05/2022 00:00;Venda cliente I - produto X;1320000;0;1110000;;;
+05/05/2022 00:00;Pagamento aluguel;0;480000;630000;;;
+10/05/2022 00:00;Salários equipe + horas extras;0;2150000;-1520000;;;
+15/05/2022 00:00;Venda cliente J - contrato anual;4500000;0;2980000;;;
+20/05/2022 00:00;Adiantamento fornecedores;0;1200000;1780000;;;
+25/05/2022 00:00;Manutenção preventiva;0;580000;1200000;;;
+05/06/2022 00:00;Venda cliente K - produto W;950000;0;2150000;;;
+05/06/2022 00:00;Pagamento aluguel;0;480000;1670000;;;
+10/06/2022 00:00;Salários equipe;0;1850000;-180000;;;
+15/06/2022 00:00;Venda sazonal - dia dos namorados;3260000;0;3080000;;;
+20/06/2022 00:00;Investimento em marketing;0;850000;2230000;;;
+28/06/2022 00:00;Recebimento cliente D - atraso 15d;980000;0;3210000;;;
+05/07/2022 00:00;Venda cliente L - serviço Y;760000;0;3970000;;;
+05/07/2022 00:00;Pagamento aluguel;0;480000;3490000;;;
+10/07/2022 00:00;Salários equipe + dissídio;0;1980000;1510000;;;
+15/07/2022 00:00;Venda cliente M - pacote corporativo;2870000;0;4380000;;;
+22/07/2022 00:00;Compra novos equipamentos;0;3250000;1130000;;;
+05/08/2022 00:00;Venda cliente N - produto X;1180000;0;2310000;;;
+05/08/2022 00:00;Pagamento aluguel;0;480000;1830000;;;
+10/08/2022 00:00;Salários equipe;0;1980000;-150000;;;
+12/08/2022 00:00;Recebimento cliente E - atraso 60d;1520000;0;1370000;;;
+15/08/2022 00:00;Venda cliente O - serviço personalizado;1650000;0;3020000;;;
+25/08/2022 00:00;Pagamento licenças software;0;720000;2300000;;;
+05/09/2022 00:00;Venda cliente P - produto Z;1420000;0;3720000;;;
+05/09/2022 00:00;Pagamento aluguel;0;480000;3240000;;;
+10/09/2022 00:00;Salários equipe + bonus;0;2250000;990000;;;
+15/09/2022 00:00;Venda sazonal - retorno férias;2980000;0;3970000;;;
+20/09/2022 00:00;Treinamento equipe;0;650000;3320000;;;
+28/09/2022 00:00;Recebimento cliente F - atraso 45d;1120000;0;4440000;;;
+05/10/2022 00:00;Venda cliente Q - serviço X;890000;0;5330000;;;
+05/10/2022 00:00;Pagamento aluguel + IPTU;0;620000;4710000;;;
+10/10/2022 00:00;Salários equipe;0;1980000;2730000;;;
+15/10/2022 00:00;Venda cliente R - contrato semestral;3800000;0;6530000;;;
+22/10/2022 00:00;Pagamento impostos trimestrais;0;1450000;5080000;;;
+05/11/2022 00:00;Venda cliente S - produto Y;1260000;0;6340000;;;
+05/11/2022 00:00;Pagamento aluguel;0;620000;5720000;;;
+10/11/2022 00:00;Salários equipe;0;1980000;3740000;;;
+15/11/2022 00:00;Venda sazonal - black friday;5420000;0;9160000;;;
+20/11/2022 00:00;Investimento em estoque;0;2850000;6310000;;;
+25/11/2022 00:00;Recebimento cliente G - atraso 30d;870000;0;7180000;;;
+05/12/2022 00:00;Venda cliente T - serviço premium;1750000;0;8930000;;;
+05/12/2022 00:00;Pagamento aluguel;0;620000;8310000;;;
+10/12/2022 00:00;Salários equipe + 13o;0;3960000;4350000;;;
+15/12/2022 00:00;Venda sazonal - natal;4870000;0;9220000;;;
+18/12/2022 00:00;Pagamento fornecedores + bonus;0;3250000;5970000;;;
+28/12/2022 00:00;Recebimento cliente H - atraso 60d;1050000;0;7020000;;;
+05/01/2023 00:00;Venda cliente U - produto X;1320000;0;8340000;;;
+05/01/2023 00:00;Pagamento aluguel + reajuste;0;680000;7660000;;;
+10/01/2023 00:00;Salários equipe;0;1980000;5680000;;;
+15/01/2023 00:00;Venda cliente V - pacote anual;4120000;0;9800000;;;
+20/01/2023 00:00;Compra equipamentos novos;0;4280000;5520000;;;
+25/01/2023 00:00;Recebimento cliente I - atraso 45d;1320000;0;6840000;;;
+05/02/2023 00:00;Venda cliente W - serviço Y;950000;0;7790000;;;
+05/02/2023 00:00;Pagamento aluguel;0;680000;7110000;;;
+10/02/2023 00:00;Salários equipe;0;1980000;5130000;;;
+15/02/2023 00:00;Venda cliente X - contrato corporativo;3560000;0;8690000;;;
+22/02/2023 00:00;Pagamento licenças anuais;0;1250000;7440000;;;
+05/03/2023 00:00;Venda cliente Y - produto Z;1420000;0;8860000;;;
+05/03/2023 00:00;Pagamento aluguel;0;680000;8180000;;;
+10/03/2023 00:00;Salários equipe + benefícios;0;2150000;6030000;;;
+15/03/2023 00:00;Venda sazonal - dia das mães;3280000;0;9310000;;;
+20/03/2023 00:00;Campanha marketing digital;0;1850000;7460000;;;
+28/03/2023 00:00;Recebimento cliente J - atraso 30d;4500000;0;11960000;;;
+05/04/2023 00:00;Venda cliente Z - serviço X;880000;0;12840000;;;
+05/04/2023 00:00;Pagamento aluguel + IPTU;0;750000;12090000;;;
+10/04/2023 00:00;Salários equipe;0;1980000;10110000;;;
+15/04/2023 00:00;Venda cliente A - renovação contrato;2870000;0;12980000;;;
+22/04/2023 00:00;Pagamento impostos trimestrais;0;1870000;11110000;;;
+05/05/2023 00:00;Venda cliente B - produto W;1250000;0;12360000;;;
+05/05/2023 00:00;Pagamento aluguel;0;750000;11610000;;;
+10/05/2023 00:00;Salários equipe;0;1980000;9630000;;;
+15/05/2023 00:00;Venda cliente C - pacote especial;3650000;0;13280000;;;
+20/05/2023 00:00;Manutenção predial;0;1250000;12030000;;;
+25/05/2023 00:00;Recebimento cliente K - atraso 60d;950000;0;12980000;;;
+05/06/2023 00:00;Venda cliente D - serviço Z;1120000;0;14100000;;;
+05/06/2023 00:00;Pagamento aluguel;0;750000;13350000;;;
+10/06/2023 00:00;Salários equipe + bonus;0;2250000;11100000;;;
+15/06/2023 00:00;Venda sazonal - dia dos namorados;4120000;0;15220000;;;
+20/06/2023 00:00;Investimento em infraestrutura;0;3250000;11970000;;;
+28/06/2023 00:00;Recebimento cliente L - atraso 45d;760000;0;12730000;;;

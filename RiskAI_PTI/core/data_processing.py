@@ -39,7 +39,7 @@ def validar_colunas_obrigatorias(df: pd.DataFrame) -> Tuple[bool, str]:
     colunas_obrigatorias_minimas = ["data", "descricao"]
     colunas_faltando = [col for col in colunas_obrigatorias_minimas if col not in df.columns]
     if colunas_faltando:
-        return False, (f"Colunas obrigatórias faltando: {", ".join(colunas_faltando)}")
+        return False, (f'Colunas obrigatórias faltando: {", ".join(colunas_faltando)}')
     return True, "Colunas obrigatórias presentes."
 
 def limpar_e_transformar_dados(df: pd.DataFrame) -> Optional[pd.DataFrame]:
@@ -113,7 +113,7 @@ if __name__ == "__main__":
     # Este caminho é relativo à raiz do projeto se você executar `python core/data_processing.py` de lá
     # ou relativo a `core/` se executar de dentro da pasta `core/`.
     # Para testes robustos, use caminhos absolutos ou fixtures em um framework de teste.
-    caminho_exemplo = "/Users/hp/Downloads/riskai/RiskAI_PTI/data/example.csv" 
+    caminho_exemplo = "C:/Users/23011372/Documents/Simple_Tech_2/RiskAI_PTI/data/example.csv" 
 
     dados_processados = processar_arquivo_completo(caminho_exemplo)
 

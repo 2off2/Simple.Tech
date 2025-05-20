@@ -122,7 +122,7 @@ if st.session_state.prediction_data is not None and st.session_state.alert_data 
                 for index, row in df_alerts_summary.iterrows():
                     data_alerta = pd.to_datetime(row["data"]).strftime("%d/%m/%Y")
                     icon = "🚨" if row["nivel"] == "Alto" else ("⚠️" if row["nivel"] == "Médio" else "ℹ️")
-                    st.markdown(f"{icon} **{row["nivel"]} em {data_alerta}**: {row["tipo_risco"]}")
+                    st.markdown(f"{icon} **{row['nivel']} em {data_alerta}**: {row['tipo_risco']}")
                 if len(alerts) > 5:
                     st.caption(f"Mostrando os 5 principais alertas de {len(alerts)} no total. Veja mais na página de Previsão.")
             else:
@@ -143,20 +143,20 @@ if st.session_state.simulation_summary is not None:
     with col_sim1:
         st.metric(
             label="Probabilidade de Saldo Negativo (Final do Período)", 
-            value=f"{summary.get(	"prob_saldo_negativo_final	", 0)*100:.2f}%"
+            value=f"{summary.get(	'prob_saldo_negativo_final	', 0)*100:.2f}%"
         )
         st.metric(
             label="Valor Mediano Esperado (Final do Período)", 
-            value=f"R$ {summary.get(	"valor_mediano_esperado	", 0):,.2f}"
+            value=f"R$ {summary.get(	'valor_mediano_esperado	', 0):,.2f}"
         )
     with col_sim2:
         st.metric(
             label="Probabilidade de Saldo Negativo (Qualquer Momento)", 
-            value=f"{summary.get(	"prob_saldo_negativo_qualquer_momento	", 0)*100:.2f}%"
+            value=f"{summary.get(	'prob_saldo_negativo_qualquer_momento	', 0)*100:.2f}%"
         )
         st.metric(
             label="Valor Mínimo Esperado (P5, Final do Período)", 
-            value=f"R$ {summary.get(	"valor_minimo_esperado	", 0):,.2f}"
+            value=f"R$ {summary.get(	'valor_minimo_esperado	', 0):,.2f}"
         )
     
     # Poderia adicionar um gráfico simplificado da simulação aqui se os dados fossem passados
@@ -188,7 +188,7 @@ if st.session_state.customer_analysis_report is not None:
         col_cust1, col_cust2 = st.columns(2)
         with col_cust1:
             st.metric("Clientes com Faturas em Atraso", report.get("total_clientes_com_faturas_em_atraso", 0))
-            st.metric("Valor Total em Atraso", f"R$ {report.get(	"valor_total_em_atraso	", 0):,.2f}")
+            st.metric("Valor Total em Atraso", f"R$ {report.get(	'valor_total_em_atraso	', 0):,.2f}")
         
         with col_cust2:
             st.subheader("Distribuição de Risco de Inadimplência")
@@ -215,5 +215,5 @@ else:
 
 # --- Rodapé ---
 st.markdown("---")
-st.caption(f"RiskAI - Dashboard Geral • Última atualização: {datetime.now().strftime(	"%Y-%m-%d %H:%M	")}")
+st.caption(f"RiskAI - Dashboard Geral • Última atualização: {datetime.now().strftime(	'%Y-%m-%d %H:%M	')}")
 

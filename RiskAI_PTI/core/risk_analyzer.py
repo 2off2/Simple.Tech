@@ -40,8 +40,9 @@ def identificar_riscos_com_base_em_limiares(df_previsoes: pd.DataFrame, saldo_in
             alertas.append({
                 "data": row["data"].strftime("%Y-%m-%d"),
                 "tipo_risco": "Saldo Baixo",
-                "mensagem": f"Alerta: Saldo previsto de {row[coluna_saldo_para_analise]:.2f} em {row["data"].strftime("%Y-%m-%d")} está abaixo do limiar de {LIMIAR_SALDO_BAIXO:.2f}.",
-                "nivel": "Alto"
+                "mensagem": f"Alerta: Saldo previsto de {row[coluna_saldo_para_analise]:.2f} em {row['data'].strftime('%Y-%m-%d')} está abaixo do limiar de {LIMIAR_SALDO_BAIXO:.2f}." ,
+
+                "nivel": "Alto",
             })
 
     # 2. Risco de Variação Negativa Grande (comparado ao saldo anterior ou inicial)
@@ -53,8 +54,8 @@ def identificar_riscos_com_base_em_limiares(df_previsoes: pd.DataFrame, saldo_in
                 alertas.append({
                     "data": row["data"].strftime("%Y-%m-%d"),
                     "tipo_risco": "Queda Brusca de Saldo",
-                    "mensagem": f"Alerta: Queda de {(variacao_percentual*100):.2f}% no saldo para {row[coluna_saldo_para_analise]:.2f} em {row["data"].strftime("%Y-%m-%d")} (comparado a {saldo_anterior:.2f}).",
-                    "nivel": "Médio"
+                    "mensagem": f"Alerta: Queda de {(variacao_percentual*100):.2f}% no saldo para {row[coluna_saldo_para_analise]:.2f} em {row['data'].strftime('%Y-%m-%d')} (comparado a {saldo_anterior:.2f})." ,
+                    "nivel": "Médio" ,
                 })
         saldo_anterior = row[coluna_saldo_para_analise]
 
@@ -76,8 +77,8 @@ def identificar_riscos_com_base_em_limiares(df_previsoes: pd.DataFrame, saldo_in
                     alertas.append({
                         "data": row["data"].strftime("%Y-%m-%d"),
                         "tipo_risco": "Fluxo Negativo Persistente",
-                        "mensagem": f"Alerta: {dias_negativos_consecutivos} dias consecutivos de fluxo de caixa negativo previsto terminando em {row["data"].strftime("%Y-%m-%d")}.",
-                        "nivel": "Médio"
+                        "mensagem": f"Alerta: {dias_negativos_consecutivos} dias consecutivos de fluxo de caixa negativo previsto terminando em {row['data'].strftime('%Y-%m-%d')}.",
+                        "nivel": "Médio",
                     })
     else:
         print("Aviso: Coluna 'fluxo_diario_previsto' não encontrada para análise de fluxo negativo persistente.")

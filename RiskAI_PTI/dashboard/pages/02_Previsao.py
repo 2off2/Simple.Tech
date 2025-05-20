@@ -136,7 +136,7 @@ if st.session_state.prediction_data is not None:
         with st.expander("Ver tabela de previsões detalhadas"):
             st.dataframe(df_pred.style.format({"saldo_previsto": "R${:,.2f}"}), use_container_width=True)
     else:
-        st.warning("Os dados de previsão recebidos não contêm as colunas esperadas (	"data	", 	"saldo_previsto	").")
+        st.warning("Os dados de previsão recebidos não contêm as colunas esperadas ('data', 'saldo_previsto').")
 
 if st.session_state.alert_data is not None:
     st.markdown("---")
@@ -150,11 +150,11 @@ if st.session_state.alert_data is not None:
         for index, row in df_alerts.iterrows():
             data_alerta = pd.to_datetime(row["data"]).strftime("%d/%m/%Y")
             if row["nivel"] == "Alto":
-                st.error(f"🚨 **Risco Alto em {data_alerta}**: {row["tipo_risco"]} - {row["mensagem"]}")
+                st.error(f"🚨 **Risco Alto em {data_alerta}**: {row['tipo_risco']} - {row['mensagem']}")
             elif row["nivel"] == "Médio":
-                st.warning(f"⚠️ **Risco Médio em {data_alerta}**: {row["tipo_risco"]} - {row["mensagem"]}")
+                st.warning(f"⚠️ **Risco Médio em {data_alerta}**: {row['tipo_risco']} - {row['mensagem']}")
             else:
-                st.info(f"ℹ️ **Risco Baixo em {data_alerta}**: {row["tipo_risco"]} - {row["mensagem"]}")
+                st.info(f"ℹ️ **Risco Baixo em {data_alerta}**: {row['tipo_risco']} - {row['mensagem']}")
         
         with st.expander("Ver tabela de alertas detalhados"):
             st.dataframe(df_alerts, use_container_width=True)
@@ -163,5 +163,5 @@ if st.session_state.alert_data is not None:
 
 # --- Rodapé ---
 st.markdown("---")
-st.caption(f"RiskAI - Previsão de Fluxo de Caixa • Última atualização: {datetime.now().strftime(	"%Y-%m-%d %H:%M	")}")
+st.caption(f"RiskAI - Previsão de Fluxo de Caixa • Última atualização: {datetime.now().strftime(	'%Y-%m-%d %H:%M	')}")
 

@@ -187,13 +187,13 @@ if __name__ == "__main__":
     # Gerar relatório de inadimplência
     relatorio = gerar_relatorio_inadimplencia(df_segmentado)
     print("\n--- Relatório de Inadimplência ---")
-    print(f"Total de clientes com faturas em atraso: {relatorio["total_clientes_com_faturas_em_atraso"]}")
-    print(f"Valor total em atraso: R$ {relatorio["valor_total_em_atraso"]:.2f}")
-    print(f"Distribuição de Risco: Alto={relatorio["distribuicao_risco"]["Alto"]}, Médio={relatorio["distribuicao_risco"]["Médio"]}, Baixo={relatorio["distribuicao_risco"]["Baixo"]}")
+    print(f'Total de clientes com faturas em atraso: {relatorio["total_clientes_com_faturas_em_atraso"]}')
+    print(f"Valor total em atraso: R$ {relatorio['valor_total_em_atraso']:.2f}")
+    print(f"Distribuição de Risco: Alto={relatorio['distribuicao_risco']['Alto']}, Médio={relatorio['distribuicao_risco']['Médio']}, Baixo={relatorio['distribuicao_risco']['Baixo']}")
     print("Top 5 Clientes de Alto Risco (em atraso):")
     if relatorio["top_5_clientes_alto_risco"]:
         for cliente in relatorio["top_5_clientes_alto_risco"]:
-            print(f"  - ID: {cliente["id_cliente"]}, Devido: R$ {cliente["total_devido_atraso"]:.2f}, Max Dias Atraso: {cliente["max_dias_atraso"]}")
+            print(f"  - ID: {cliente['id_cliente']}, Devido: R$ {cliente['total_devido_atraso']:.2f}, Max Dias Atraso: {cliente['max_dias_atraso']}")
     else:
         print("  Nenhum cliente classificado como alto risco atualmente em atraso.")
 

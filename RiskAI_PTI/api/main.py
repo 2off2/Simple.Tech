@@ -1,18 +1,19 @@
+# api/main.py
+# Versão simplificada com todos os endpoints em um único arquivo
+
 from fastapi import FastAPI, UploadFile, File, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 import pandas as pd
+import numpy as np
 import os
 from typing import List, Optional, Dict, Any
-
-# Importar módulos do core (ajuste o caminho conforme a estrutura do seu projeto)
-# Isso assume que a raiz do projeto está no PYTHONPATH ou que você está usando um ambiente virtual
-# configurado corretamente.
 import sys
-# Adiciona o diretório pai (raiz do projeto) ao sys.path
-# Isso assume que main.py está em api/ e a pasta core/ está na raiz do projeto
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
+# Adiciona o diretório raiz ao path para que o Python possa encontrar os módulos
+sys.path.insert(0, os.path.abspath(os.path.dirname(os.path.dirname(__file__))))
+
+# Importar módulos do core
 from core import data_processing, cashflow_predictor, risk_analyzer, scenario_simulator, customer_analysis
 
 # --- Configuração da Aplicação FastAPI ---
@@ -69,9 +70,9 @@ global_historical_stats: Optional[Dict[str, Any]] = None
 async def health_check():
     return {"message": "RiskAI API está funcionando!"}
 
-# --- Endpoints de Gerenciamento de Dados (data.py) ---
+# --- Endpoints de Gerenciamento de Dados ---
 @app.post("/data/upload_csv", response_model=FileUploadResponse, tags=["Data Management"])
-async def upload_csv_file(file: UploadFile = File(...) ):
+async def upload_csv_file(file: UploadFile = File(...)):
     global global_processed_df, global_prediction_model, global_historical_stats
     try:
         file_path = os.path.join(UPLOAD_DIR, file.filename)
@@ -93,7 +94,7 @@ async def upload_csv_file(file: UploadFile = File(...) ):
             file_path=file_path
         )
     except HTTPException as http_exc:
-        return FileUploadResponse(filename=file.filename, message="Erro HTTP", error=str(http_exc.detail ))
+        return FileUploadResponse(filename=file.filename, message="Erro HTTP", error=str(http_exc.detail))
     except Exception as e:
         return FileUploadResponse(filename=file.filename, message="Erro interno do servidor", error=str(e))
 
@@ -104,7 +105,7 @@ async def view_processed_data(limit: int = 5):
         raise HTTPException(status_code=404, detail="Nenhum dado processado disponível. Faça upload de um arquivo primeiro.")
     return JSONResponse(content=global_processed_df.head(limit).to_dict(orient="records"))
 
-# --- Endpoints de Previsão (predictions.py) ---
+# --- Endpoints de Previsão ---
 @app.post("/predict/cashflow", response_model=PredictionResponse, tags=["Predictions & Alerts"])
 async def predict_cashflow(params: PredictionParams):
     global global_processed_df, global_prediction_model
@@ -147,9 +148,9 @@ async def predict_cashflow(params: PredictionParams):
     except HTTPException as http_exc:
         raise http_exc
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro interno ao gerar previsão: {str(e )}")
+        raise HTTPException(status_code=500, detail=f"Erro interno ao gerar previsão: {str(e)}")
 
-# --- Endpoints de Simulação (simulations.py) ---
+# --- Endpoints de Simulação ---
 @app.post("/simulate/scenarios", response_model=ScenarioResponse, tags=["Simulations"])
 async def simulate_scenarios(params: ScenarioParams):
     global global_processed_df, global_historical_stats
@@ -177,7 +178,7 @@ async def simulate_scenarios(params: ScenarioParams):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro interno ao executar simulação: {str(e)}")
 
-# --- Endpoints de Análise de Clientes (customer_analysis.py) ---
+# --- Endpoints de Análise de Clientes ---
 @app.get("/analyze/customer_delinquency", response_model=CustomerAnalysisResponse, tags=["Customer Analysis"])
 async def analyze_customer_delinquency():
     global global_processed_df
@@ -187,7 +188,7 @@ async def analyze_customer_delinquency():
     # Verificar se as colunas necessárias para análise de inadimplência existem
     colunas_necessarias = ["id_cliente", "data_vencimento", "valor_fatura"]
     if not all(col in global_processed_df.columns for col in colunas_necessarias):
-        raise HTTPException(status_code=400, detail=f"Dados insuficientes para análise de inadimplência. Colunas necessárias: {", ".join(colunas_necessarias)}.")
+        raise HTTPException(status_code=400, detail=f"Dados insuficientes para análise de inadimplência. Colunas necessárias: {', '.join(colunas_necessarias)}.")
 
     try:
         df_com_atraso = customer_analysis.calcular_dias_atraso(global_processed_df)
@@ -202,12 +203,9 @@ async def analyze_customer_delinquency():
         raise HTTPException(status_code=500, detail=f"Erro interno ao analisar inadimplência: {str(e)}")
 
 # --- Para executar a API (exemplo com Uvicorn) ---
-# No terminal, na raiz do projeto: uvicorn api.main:app --reload
-# Ou configure o VSCode para executar com Uvicorn.
-
 if __name__ == "__main__":
     import uvicorn
     # Este bloco é útil para desenvolvimento, mas em produção, use um servidor ASGI como Uvicorn diretamente.
-    print("Iniciando servidor Uvicorn para RiskAI API em http://127.0.0.1:8000" )
-    print("Acesse a documentação interativa em http://127.0.0.1:8000/docs" )
+    print("Iniciando servidor Uvicorn para RiskAI API em http://127.0.0.1:8000")
+    print("Acesse a documentação interativa em http://127.0.0.1:8000/docs")
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
