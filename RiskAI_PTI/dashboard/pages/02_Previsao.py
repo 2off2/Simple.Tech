@@ -1,176 +1,196 @@
 import streamlit as st
 import pandas as pd
 import requests
+import plotly.express as px
 import plotly.graph_objects as go
-from datetime import datetime
 
-# URL base da API
-API_BASE_URL = "http://localhost:8000"
-
-# --- Configuração da Página ---
+# Configuração da página
 st.set_page_config(
     page_title="Previsão de Fluxo de Caixa - RiskAI",
     page_icon="📈",
     layout="wide"
 )
 
-# --- Título e Descrição ---
-st.title("Previsão de Fluxo de Caixa e Alertas de Risco")
-st.markdown("""
-Nesta página, você pode gerar previsões para o seu fluxo de caixa com base nos dados carregados 
-e visualizar alertas de risco identificados.
-""")
+# URL base da API
+API_BASE_URL = "http://localhost:8000"
 
-# --- Estado da Sessão ---
-if "uploaded_file_name" not in st.session_state:
-    st.session_state.uploaded_file_name = None
-if "api_error" not in st.session_state:
-    st.session_state.api_error = None
-if "prediction_data" not in st.session_state:
-    st.session_state.prediction_data = None
-if "alert_data" not in st.session_state:
-    st.session_state.alert_data = None
+st.title("📈 Previsão de Fluxo de Caixa")
 
-# --- Funções Auxiliares ---
-def test_api_connection():
-    """Testa a conexão com a API"""
+# Verificar se há dados carregados
+def check_data_loaded():
     try:
-        response = requests.get(f"{API_BASE_URL}/health", timeout=5)
+        response = requests.get(f"{API_BASE_URL}/api/data/view_processed?limit=1", timeout=5)
         return response.status_code == 200
     except:
         return False
 
-def get_cashflow_prediction_from_api(days_to_predict: int):
-    """Busca a previsão de fluxo de caixa e alertas da API."""
-    try:
-        params = {"days_to_predict": days_to_predict}
-        response = requests.post(f"{API_BASE_URL}/api/predictions/cashflow", json=params, timeout=60)
-        response.raise_for_status()
-        return response.json()
-    except requests.exceptions.HTTPError as http_err:
+if not check_data_loaded():
+    st.warning("⚠️ Nenhum dado encontrado. Por favor, carregue seus dados na página de Upload primeiro.")
+    st.stop()
+
+st.success("✅ Dados carregados. Você pode gerar previsões!")
+
+# Parâmetros da previsão
+st.subheader("⚙️ Configurações da Previsão")
+
+col1, col2 = st.columns(2)
+
+with col1:
+    days_to_predict = st.number_input(
+        "Dias para Simular no Futuro:",
+        min_value=1,
+        max_value=365,
+        value=30,
+        help="Quantos dias à frente você quer prever"
+    )
+
+with col2:
+    confidence_level = st.selectbox(
+        "Nível de Confiança:",
+        options=[90, 95, 99],
+        index=1,
+        help="Nível de confiança para as previsões"
+    )
+
+# Botão para gerar previsão
+if st.button("🔮 Gerar Previsão", type="primary"):
+    with st.spinner("Gerando previsões..."):
         try:
-            error_detail = http_err.response.json().get("detail", str(http_err))
-        except Exception:
-            error_detail = str(http_err)
-        st.session_state.api_error = f"Erro da API ao gerar previsão: {error_detail}"
-        return None
-    except requests.exceptions.RequestException as e:
-        st.session_state.api_error = f"Erro de conexão com a API ao gerar previsão: {e}"
-        return None
-    except Exception as e:
-        st.session_state.api_error = f"Erro inesperado ao processar previsão: {e}"
-        return None
-
-# --- Verificar Status da API ---
-api_status = test_api_connection()
-if not api_status:
-    st.error("❌ API não está respondendo. Verifique se a API está rodando em http://localhost:8000")
-    st.stop()
-
-# --- Verificar se os dados foram carregados ---
-if st.session_state.uploaded_file_name is None:
-    st.warning("⚠️ Por favor, carregue um arquivo CSV na página **1. Upload de Dados** primeiro.")
-    st.image("https://img.icons8.com/dusk/128/000000/warning-shield.png", width=128)
-    st.stop()
-
-st.success(f"Arquivo ativo para análise: **{st.session_state.uploaded_file_name}**")
-st.markdown("---")
-
-# --- Seção de Parâmetros da Previsão ---
-st.header("Parâmetros da Previsão")
-
-days_to_predict_input = st.number_input(
-    "Número de dias para prever no futuro:", 
-    min_value=7, 
-    max_value=365, 
-    value=30, 
-    step=1,
-    help="Defina quantos dias à frente você deseja que a previsão seja gerada (mínimo 7, máximo 365)."
-)
-
-if st.button("Gerar Previsão e Analisar Riscos", key="generate_prediction_button"):
-    with st.spinner("Gerando previsão e analisando riscos... Isso pode levar alguns instantes."):
-        st.session_state.api_error = None
-        st.session_state.prediction_data = None
-        st.session_state.alert_data = None
-        
-        api_response = get_cashflow_prediction_from_api(days_to_predict_input)
-        
-        if api_response:
-            if "predictions" in api_response and "alerts" in api_response:
-                st.session_state.prediction_data = pd.DataFrame(api_response["predictions"])
-                st.session_state.alert_data = api_response["alerts"]
-                st.success("Previsão e análise de riscos concluídas!")
+            # Fazer requisição para API
+            payload = {
+                "days_to_predict": days_to_predict
+            }
+            
+            response = requests.post(
+                f"{API_BASE_URL}/api/predictions/cashflow",
+                json=payload,
+                timeout=60
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                predictions = result.get("predictions", [])
+                alerts = result.get("alerts", [])
+                
+                if predictions:
+                    # Converter para DataFrame
+                    df_predictions = pd.DataFrame(predictions)
+                    df_predictions['data'] = pd.to_datetime(df_predictions['data'])
+                    
+                    # Gráfico de previsão
+                    st.subheader("📊 Projeção de Saldo")
+                    
+                    fig = go.Figure()
+                    
+                    # Linha principal do saldo
+                    fig.add_trace(go.Scatter(
+                        x=df_predictions['data'],
+                        y=df_predictions['saldo_previsto'],
+                        mode='lines+markers',
+                        name='Saldo Previsto',
+                        line=dict(color='blue', width=3)
+                    ))
+                    
+                    # Linha zero para referência
+                    fig.add_hline(y=0, line_dash="dash", line_color="red", 
+                                annotation_text="Saldo Zero")
+                    
+                    fig.update_layout(
+                        title="Projeção de Saldo nos Próximos Dias",
+                        xaxis_title="Data",
+                        yaxis_title="Saldo (R$)",
+                        hovermode='x unified',
+                        height=500
+                    )
+                    
+                    st.plotly_chart(fig, use_container_width=True)
+                    
+                    # Tabela de previsões
+                    st.subheader("📋 Tabela de Previsões")
+                    
+                    # Formatar valores monetários
+                    df_display = df_predictions.copy()
+                    df_display['data'] = df_display['data'].dt.strftime('%Y-%m-%d')
+                    df_display['saldo_previsto'] = df_display['saldo_previsto'].apply(lambda x: f"R$ {x:,.2f}")
+                    df_display['entrada_estimada'] = df_display['entrada_estimada'].apply(lambda x: f"R$ {x:,.2f}")
+                    df_display['saida_estimada'] = df_display['saida_estimada'].apply(lambda x: f"R$ {x:,.2f}")
+                    
+                    # Renomear colunas
+                    df_display = df_display.rename(columns={
+                        'data': 'Data',
+                        'saldo_previsto': 'Saldo Previsto',
+                        'entrada_estimada': 'Entrada Estimada',
+                        'saida_estimada': 'Saída Estimada'
+                    })
+                    
+                    st.dataframe(df_display, use_container_width=True)
+                    
+                    # Alertas de risco
+                    if alerts:
+                        st.subheader("🚨 Alertas de Risco")
+                        
+                        for alert in alerts:
+                            nivel = alert.get('nivel', 'Médio')
+                            if nivel == 'Alto':
+                                st.error(f"🔴 **{alert.get('tipo_risco')}** - {alert.get('data')}: {alert.get('mensagem')}")
+                            elif nivel == 'Médio':
+                                st.warning(f"🟡 **{alert.get('tipo_risco')}** - {alert.get('data')}: {alert.get('mensagem')}")
+                            else:
+                                st.info(f"🔵 **{alert.get('tipo_risco')}** - {alert.get('data')}: {alert.get('mensagem')}")
+                    else:
+                        st.success("✅ Nenhum alerta de risco identificado para o período!")
+                    
+                    # Métricas resumo
+                    st.subheader("📊 Resumo da Previsão")
+                    
+                    saldo_final = df_predictions['saldo_previsto'].iloc[-1]
+                    saldo_inicial = df_predictions['saldo_previsto'].iloc[0]
+                    variacao = saldo_final - saldo_inicial
+                    
+                    col1, col2, col3, col4 = st.columns(4)
+                    
+                    with col1:
+                        st.metric("Saldo Final Previsto", f"R$ {saldo_final:,.2f}")
+                    
+                    with col2:
+                        st.metric("Variação Total", f"R$ {variacao:,.2f}", 
+                                delta=f"R$ {variacao:,.2f}")
+                    
+                    with col3:
+                        saldo_min = df_predictions['saldo_previsto'].min()
+                        st.metric("Menor Saldo", f"R$ {saldo_min:,.2f}")
+                    
+                    with col4:
+                        saldo_max = df_predictions['saldo_previsto'].max()
+                        st.metric("Maior Saldo", f"R$ {saldo_max:,.2f}")
+                    
+                else:
+                    st.error("❌ Nenhuma previsão foi gerada.")
+                    
             else:
-                error_msg = api_response.get("detail", "Resposta inesperada da API.")
-                st.error(f"Erro ao obter dados da API: {error_msg}")
-                st.session_state.api_error = f"Erro da API: {error_msg}"
-        else:
-            if not st.session_state.api_error:
-                st.error("Falha ao obter resposta da API para previsão.")
+                error_detail = response.json().get('detail', 'Erro desconhecido')
+                st.error(f"❌ Erro ao gerar previsão: {error_detail}")
+                
+        except requests.exceptions.ConnectionError:
+            st.error("❌ Erro de conexão com a API. Verifique se a API está rodando.")
+        except Exception as e:
+            st.error(f"❌ Erro inesperado: {str(e)}")
 
-    if st.session_state.api_error:
-        st.error(st.session_state.api_error)
+# Informações adicionais
+st.subheader("ℹ️ Sobre as Previsões")
+st.markdown("""
+- **Modelo**: Utiliza regressão linear baseada em dados históricos
+- **Variáveis**: Médias móveis de entradas, saídas e saldo anterior
+- **Alertas**: Identifica riscos de saldo negativo ou baixo
+- **Precisão**: Depende da qualidade e quantidade dos dados históricos
+""")
 
-# --- Exibir Resultados da Previsão e Alertas ---
-if st.session_state.prediction_data is not None:
-    st.markdown("---")
-    st.header("Resultados da Previsão de Fluxo de Caixa")
-    
-    df_pred = st.session_state.prediction_data
-    
-    if not df_pred.empty and "data" in df_pred.columns and "saldo_previsto" in df_pred.columns:
-        df_pred["data"] = pd.to_datetime(df_pred["data"])
-        
-        # Gráfico de Previsão de Saldo
-        fig = go.Figure()
-        fig.add_trace(go.Scatter(
-            x=df_pred["data"],
-            y=df_pred["saldo_previsto"],
-            mode="lines+markers",
-            name="Saldo Previsto",
-            line=dict(color="royalblue", width=2),
-            marker=dict(size=5)
-        ))
-        
-        fig.update_layout(
-            title="Previsão do Saldo de Caixa",
-            xaxis_title="Data",
-            yaxis_title="Saldo Estimado (R$)",
-            hovermode="x unified",
-            legend_title_text="Legenda"
-        )
-        st.plotly_chart(fig, use_container_width=True)
-        
-        # Tabela de Previsões
-        with st.expander("Ver tabela de previsões detalhadas"):
-            st.dataframe(df_pred.style.format({"saldo_previsto": "R${:,.2f}"}), use_container_width=True)
-    else:
-        st.warning("Os dados de previsão recebidos não contêm as colunas esperadas ('data', 'saldo_previsto').")
-
-if st.session_state.alert_data is not None:
-    st.markdown("---")
-    st.header("Alertas de Risco Identificados")
-    
-    alerts = st.session_state.alert_data
-    if alerts:
-        df_alerts = pd.DataFrame(alerts)
-        df_alerts = df_alerts.sort_values(by=["data", "nivel"], ascending=[True, False])
-        
-        for index, row in df_alerts.iterrows():
-            data_alerta = pd.to_datetime(row["data"]).strftime("%d/%m/%Y")
-            if row["nivel"] == "Alto":
-                st.error(f"🚨 **Risco Alto em {data_alerta}**: {row['tipo_risco']} - {row['mensagem']}")
-            elif row["nivel"] == "Médio":
-                st.warning(f"⚠️ **Risco Médio em {data_alerta}**: {row['tipo_risco']} - {row['mensagem']}")
-            else:
-                st.info(f"ℹ️ **Risco Baixo em {data_alerta}**: {row['tipo_risco']} - {row['mensagem']}")
-        
-        with st.expander("Ver tabela de alertas detalhados"):
-            st.dataframe(df_alerts, use_container_width=True)
-    else:
-        st.success("✅ Nenhum alerta de risco identificado com base nos parâmetros atuais.")
-
-# --- Rodapé ---
-st.markdown("---")
-st.caption(f"RiskAI - Previsão de Fluxo de Caixa • Última atualização: {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+# Botão para exportar dados
+if 'df_predictions' in locals():
+    csv_data = df_predictions.to_csv(index=False)
+    st.download_button(
+        label="📥 Baixar Previsões (CSV)",
+        data=csv_data,
+        file_name=f"previsoes_fluxo_caixa_{days_to_predict}_dias.csv",
+        mime="text/csv"
+    )

@@ -1,219 +1,284 @@
-# dashboard/pages/04_Dashboard_Geral.py
-
 import streamlit as st
 import pandas as pd
 import requests
+import plotly.express as px
 import plotly.graph_objects as go
-from datetime import datetime
+from datetime import datetime, timedelta
 
-# URL base da API (ajuste se necessário)
-API_BASE_URL = "http://localhost:8000"  # Assume que a API FastAPI está rodando localmente na porta 8000
-
-# --- Configuração da Página ---
+# Configuração da página
 st.set_page_config(
     page_title="Dashboard Geral - RiskAI",
-    page_icon="🏠",
+    page_icon="📊",
     layout="wide"
- )
+)
 
-# --- Título e Descrição ---
-st.title("Dashboard Geral Consolidado")
-st.markdown("""
-Este dashboard apresenta um resumo das principais métricas e visualizações geradas 
-pelas análises de previsão, risco e simulação.
-""")
+# URL base da API
+API_BASE_URL = "http://localhost:8000"
 
-# --- Estado da Sessão ---
-if "uploaded_file_name" not in st.session_state:
-    st.session_state.uploaded_file_name = None
-if "api_error" not in st.session_state:
-    st.session_state.api_error = None
-if "prediction_data" not in st.session_state:
-    st.session_state.prediction_data = None # Armazenado pela página de Previsão
-if "alert_data" not in st.session_state:
-    st.session_state.alert_data = None # Armazenado pela página de Previsão
-if "simulation_summary" not in st.session_state:
-    st.session_state.simulation_summary = None # Armazenado pela página de Simulação
-if "customer_analysis_report" not in st.session_state:
-    st.session_state.customer_analysis_report = None # Para análise de inadimplência
+st.title("📊 Dashboard Geral - RiskAI")
 
-# --- Funções Auxiliares (reutilizadas ou específicas) ---
-# (Poderiam ser movidas para um módulo de utils do dashboard se ficarem muito repetitivas)
-
-def fetch_customer_analysis_from_api():
-    """Busca o relatório de análise de inadimplência da API."""
+# Verificar se há dados carregados
+def check_data_loaded():
     try:
-        response = requests.get(f"{API_BASE_URL}/analyze/customer_delinquency", timeout=30)
-        response.raise_for_status()
-        return response.json()
-    except requests.exceptions.HTTPError as http_err:
-        try:
-            error_detail = http_err.response.json( ).get("detail", str(http_err ))
-        except Exception:
-            error_detail = str(http_err )
-        st.session_state.api_error = f"Erro da API (Análise de Clientes): {error_detail}"
-        return None
-    except requests.exceptions.RequestException as e:
-        st.session_state.api_error = f"Erro de conexão com a API (Análise de Clientes): {e}"
-        return None
-    return None
+        response = requests.get(f"{API_BASE_URL}/api/data/view_processed?limit=1", timeout=5)
+        return response.status_code == 200
+    except:
+        return False
 
-# --- Layout Principal ---
+def get_processed_data(limit=100):
+    try:
+        response = requests.get(f"{API_BASE_URL}/api/data/view_processed?limit={limit}", timeout=10)
+        if response.status_code == 200:
+            return pd.DataFrame(response.json())
+        return None
+    except:
+        return None
 
-# Verificar se os dados foram carregados
-if st.session_state.uploaded_file_name is None:
-    st.warning("⚠️ Por favor, carregue um arquivo CSV na página **1. Upload de Dados** primeiro para popular o dashboard.")
-    st.image("https://img.icons8.com/dusk/128/000000/warning-shield.png", width=128 )
+if not check_data_loaded():
+    st.warning("⚠️ Nenhum dado encontrado. Por favor, carregue seus dados na página de Upload primeiro.")
+    
+    # Mostrar dashboard de exemplo
+    st.subheader("📋 Visão Geral do Sistema")
+    
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.metric("Status da API", "🟢 Online" if check_data_loaded() else "🔴 Offline")
+    with col2:
+        st.metric("Dados Carregados", "Não")
+    with col3:
+        st.metric("Páginas Disponíveis", "4")
+    with col4:
+        st.metric("Funcionalidades", "3")
+    
+    st.info("Carregue seus dados para ver análises detalhadas!")
     st.stop()
 
-st.success(f"Exibindo dashboard para o arquivo: **{st.session_state.uploaded_file_name}**")
-st.markdown("---")
+# Carregar dados
+df_data = get_processed_data(limit=1000)
 
-# --- Botão para Atualizar Dados do Dashboard (se necessário) ---
-if st.button("Atualizar Dados do Dashboard", key="refresh_dashboard_button"):
-    with st.spinner("Buscando dados atualizados da API..."):
-        st.session_state.api_error = None
-        # Forçar a busca de dados que podem ter sido gerados em outras páginas
-        # Exemplo: se a previsão e simulação fossem executadas aqui também
-        # Para este exemplo, vamos assumir que os dados já estão no session_state das outras páginas
-        # ou buscar a análise de clientes que pode não ter sido feita ainda.
-        
-        # Tentar buscar análise de clientes se ainda não foi feita
-        if st.session_state.customer_analysis_report is None:
-            customer_report_data = fetch_customer_analysis_from_api()
-            if customer_report_data and "report" in customer_report_data:
-                st.session_state.customer_analysis_report = customer_report_data["report"]
-            elif st.session_state.api_error:
-                 st.toast(f"Erro ao buscar análise de clientes: {st.session_state.api_error}", icon="🔥")
+if df_data is None or df_data.empty:
+    st.error("❌ Erro ao carregar dados processados.")
+    st.stop()
 
-        st.toast("Dados do dashboard atualizados (ou tentativa de atualização).", icon="🔄")
+st.success("✅ Dados carregados com sucesso!")
 
-if st.session_state.api_error:
-    st.error(f"Erro da API: {st.session_state.api_error}")
+# Converter coluna de data
+df_data['data'] = pd.to_datetime(df_data['data'])
+df_data = df_data.sort_values('data')
 
-# --- Seção de Resumo da Previsão e Alertas ---
-st.header("Resumo da Previsão de Fluxo de Caixa e Alertas")
-if st.session_state.prediction_data is not None and st.session_state.alert_data is not None:
-    df_pred = st.session_state.prediction_data
-    alerts = st.session_state.alert_data
-    
-    if not df_pred.empty and "data" in df_pred.columns and "saldo_previsto" in df_pred.columns:
-        df_pred["data"] = pd.to_datetime(df_pred["data"])
-        
-        col_pred1, col_pred2 = st.columns(2)
-        with col_pred1:
-            st.subheader("Projeção de Saldo")
-            fig_pred_dash = go.Figure()
-            fig_pred_dash.add_trace(go.Scatter(
-                x=df_pred["data"],
-                y=df_pred["saldo_previsto"],
-                mode=	"lines",
-                name=	"Saldo Previsto",
-                line=dict(color=	"green", width=2)
-            ))
-            fig_pred_dash.update_layout(height=300, margin=dict(l=20, r=20, t=30, b=20))
-            st.plotly_chart(fig_pred_dash, use_container_width=True)
-        
-        with col_pred2:
-            st.subheader("Principais Alertas de Risco")
-            if alerts:
-                df_alerts = pd.DataFrame(alerts)
-                df_alerts_summary = df_alerts.sort_values(by=["nivel", "data"], ascending=[False, True]).head(5)
-                for index, row in df_alerts_summary.iterrows():
-                    data_alerta = pd.to_datetime(row["data"]).strftime("%d/%m/%Y")
-                    icon = "🚨" if row["nivel"] == "Alto" else ("⚠️" if row["nivel"] == "Médio" else "ℹ️")
-                    st.markdown(f"{icon} **{row['nivel']} em {data_alerta}**: {row['tipo_risco']}")
-                if len(alerts) > 5:
-                    st.caption(f"Mostrando os 5 principais alertas de {len(alerts)} no total. Veja mais na página de Previsão.")
-            else:
-                st.info("✅ Nenhum alerta de risco identificado na última previsão.")
+# Botão de atualização
+col1, col2 = st.columns([1, 4])
+with col1:
+    if st.button("🔄 Atualizar Dados"):
+        st.rerun()
+with col2:
+    st.caption(f"Última atualização: {datetime.now().strftime('%H:%M:%S')}")
+
+# Métricas principais
+st.subheader("📊 Métricas Principais")
+
+col1, col2, col3, col4 = st.columns(4)
+
+with col1:
+    total_entrada = df_data['entrada'].sum()
+    st.metric("Total de Entradas", f"R$ {total_entrada:,.2f}")
+
+with col2:
+    total_saida = df_data['saida'].sum()
+    st.metric("Total de Saídas", f"R$ {total_saida:,.2f}")
+
+with col3:
+    saldo_atual = df_data['saldo'].iloc[-1] if 'saldo' in df_data.columns else 0
+    st.metric("Saldo Atual", f"R$ {saldo_atual:,.2f}")
+
+with col4:
+    fluxo_liquido = total_entrada - total_saida
+    st.metric("Fluxo Líquido", f"R$ {fluxo_liquido:,.2f}", 
+              delta=f"R$ {fluxo_liquido:,.2f}")
+
+# Gráficos principais
+col1, col2 = st.columns(2)
+
+with col1:
+    st.subheader("📈 Evolução do Saldo")
+    if 'saldo' in df_data.columns:
+        fig_saldo = px.line(df_data, x='data', y='saldo', 
+                           title="Evolução do Saldo ao Longo do Tempo")
+        fig_saldo.add_hline(y=0, line_dash="dash", line_color="red")
+        st.plotly_chart(fig_saldo, use_container_width=True)
     else:
-        st.info("Dados de previsão não disponíveis ou incompletos. Gere uma previsão na página **2. Previsão**.")
-else:
-    st.info("Execute a previsão na página **2. Previsão** para ver os resultados aqui.")
+        st.info("Coluna 'saldo' não encontrada nos dados")
 
-st.markdown("---")
-
-# --- Seção de Resumo da Simulação de Cenários ---
-st.header("Resumo da Simulação de Cenários")
-if st.session_state.simulation_summary is not None:
-    summary = st.session_state.simulation_summary
+with col2:
+    st.subheader("💰 Entradas vs Saídas")
     
-    col_sim1, col_sim2 = st.columns(2)
-    with col_sim1:
-        st.metric(
-            label="Probabilidade de Saldo Negativo (Final do Período)", 
-            value=f"{summary.get(	'prob_saldo_negativo_final	', 0)*100:.2f}%"
-        )
-        st.metric(
-            label="Valor Mediano Esperado (Final do Período)", 
-            value=f"R$ {summary.get(	'valor_mediano_esperado	', 0):,.2f}"
-        )
-    with col_sim2:
-        st.metric(
-            label="Probabilidade de Saldo Negativo (Qualquer Momento)", 
-            value=f"{summary.get(	'prob_saldo_negativo_qualquer_momento	', 0)*100:.2f}%"
-        )
-        st.metric(
-            label="Valor Mínimo Esperado (P5, Final do Período)", 
-            value=f"R$ {summary.get(	'valor_minimo_esperado	', 0):,.2f}"
-        )
+    # Agrupar por mês para melhor visualização
+    df_monthly = df_data.groupby(df_data['data'].dt.to_period('M')).agg({
+        'entrada': 'sum',
+        'saida': 'sum'
+    }).reset_index()
+    df_monthly['data'] = df_monthly['data'].astype(str)
     
-    # Poderia adicionar um gráfico simplificado da simulação aqui se os dados fossem passados
-    # st.info("Gráfico da simulação disponível na página **3. Simulação**.")
-else:
-    st.info("Execute uma simulação na página **3. Simulação** para ver os resultados aqui.")
+    fig_bars = go.Figure()
+    fig_bars.add_trace(go.Bar(name='Entradas', x=df_monthly['data'], y=df_monthly['entrada']))
+    fig_bars.add_trace(go.Bar(name='Saídas', x=df_monthly['data'], y=df_monthly['saida']))
+    fig_bars.update_layout(title="Entradas vs Saídas por Mês", barmode='group')
+    st.plotly_chart(fig_bars, use_container_width=True)
 
-st.markdown("---")
+# Análise temporal
+st.subheader("📅 Análise Temporal")
 
-# --- Seção de Análise de Inadimplência (se aplicável) ---
-st.header("Resumo da Análise de Inadimplência de Clientes")
-if st.session_state.customer_analysis_report is None:
-    # Tentar buscar agora se não foi feito no refresh
-    if st.button("Buscar Análise de Inadimplência", key="fetch_delinquency"):
-        with st.spinner("Buscando análise de inadimplência..."):
-            customer_report_data = fetch_customer_analysis_from_api()
-            if customer_report_data and "report" in customer_report_data:
-                st.session_state.customer_analysis_report = customer_report_data["report"]
-                st.rerun() # Rerun para exibir os dados
-            elif st.session_state.api_error:
-                 st.error(f"Erro ao buscar análise de clientes: {st.session_state.api_error}")
-            else:
-                st.warning("Não foi possível buscar a análise de inadimplência ou não há dados para ela.")
+col1, col2, col3 = st.columns(3)
 
-if st.session_state.customer_analysis_report is not None:
-    report = st.session_state.customer_analysis_report
+with col1:
+    st.markdown("**Período dos Dados**")
+    data_inicio = df_data['data'].min()
+    data_fim = df_data['data'].max()
+    dias_dados = (data_fim - data_inicio).days
+    st.write(f"📅 {data_inicio.strftime('%d/%m/%Y')} até {data_fim.strftime('%d/%m/%Y')}")
+    st.write(f"⏱️ {dias_dados} dias de histórico")
+
+with col2:
+    st.markdown("**Médias Diárias**")
+    media_entrada = df_data['entrada'].mean()
+    media_saida = df_data['saida'].mean()
+    st.write(f"💰 Entrada: R$ {media_entrada:,.2f}")
+    st.write(f"💸 Saída: R$ {media_saida:,.2f}")
+
+with col3:
+    st.markdown("**Variabilidade**")
+    std_entrada = df_data['entrada'].std()
+    std_saida = df_data['saida'].std()
+    st.write(f"📊 Entrada (σ): R$ {std_entrada:,.2f}")
+    st.write(f"📊 Saída (σ): R$ {std_saida:,.2f}")
+
+# Análise de risco rápida
+st.subheader("🚨 Análise de Risco Rápida")
+
+# Calcular alguns indicadores de risco
+dias_saldo_negativo = len(df_data[df_data['saldo'] < 0]) if 'saldo' in df_data.columns else 0
+pct_dias_negativos = (dias_saldo_negativo / len(df_data)) * 100
+
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    if pct_dias_negativos > 20:
+        st.error(f"🔴 Alto Risco: {pct_dias_negativos:.1f}% dos dias com saldo negativo")
+    elif pct_dias_negativos > 5:
+        st.warning(f"🟡 Risco Médio: {pct_dias_negativos:.1f}% dos dias com saldo negativo")
+    else:
+        st.success(f"🟢 Baixo Risco: {pct_dias_negativos:.1f}% dos dias com saldo negativo")
+
+with col2:
+    # Volatilidade do fluxo
+    volatilidade = df_data['fluxo_diario'].std() if 'fluxo_diario' in df_data.columns else 0
+    st.metric("Volatilidade Diária", f"R$ {volatilidade:,.2f}")
+
+with col3:
+    # Maior déficit
+    menor_saldo = df_data['saldo'].min() if 'saldo' in df_data.columns else 0
+    st.metric("Menor Saldo Registrado", f"R$ {menor_saldo:,.2f}")
+
+# Previsão rápida (últimos 7 dias)
+st.subheader("🔮 Previsão Rápida (Próximos 7 dias)")
+
+try:
+    quick_prediction_payload = {"days_to_predict": 7}
+    response = requests.post(
+        f"{API_BASE_URL}/api/predictions/cashflow",
+        json=quick_prediction_payload,
+        timeout=30
+    )
     
-    if report.get("total_clientes_com_faturas_em_atraso", 0) > 0:
-        col_cust1, col_cust2 = st.columns(2)
-        with col_cust1:
-            st.metric("Clientes com Faturas em Atraso", report.get("total_clientes_com_faturas_em_atraso", 0))
-            st.metric("Valor Total em Atraso", f"R$ {report.get(	'valor_total_em_atraso	', 0):,.2f}")
+    if response.status_code == 200:
+        result = response.json()
+        predictions = result.get("predictions", [])
+        alerts = result.get("alerts", [])
         
-        with col_cust2:
-            st.subheader("Distribuição de Risco de Inadimplência")
-            dist_risco = report.get("distribuicao_risco", {})
-            if dist_risco:
-                df_risco = pd.DataFrame(list(dist_risco.items()), columns=["Nível de Risco", "Número de Clientes"])
-                fig_risco = go.Figure(data=[go.Pie(labels=df_risco["Nível de Risco"], values=df_risco["Número de Clientes"], hole=.3)])
-                fig_risco.update_layout(height=250, margin=dict(l=20, r=20, t=30, b=20), legend_orientation="h")
-                st.plotly_chart(fig_risco, use_container_width=True)
-            else:
-                st.info("Distribuição de risco não disponível.")
-        
-        st.subheader("Top Clientes em Alto Risco (em atraso)")
-        top_alto_risco = report.get("top_5_clientes_alto_risco", [])
-        if top_alto_risco:
-            df_top_risco = pd.DataFrame(top_alto_risco)
-            st.dataframe(df_top_risco[["id_cliente", "total_devido_atraso", "max_dias_atraso"]].style.format({"total_devido_atraso": "R${:,.2f}"}), use_container_width=True)
+        if predictions:
+            df_pred = pd.DataFrame(predictions)
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                saldo_7dias = df_pred['saldo_previsto'].iloc[-1]
+                variacao_7dias = saldo_7dias - saldo_atual
+                st.metric("Saldo Previsto (7 dias)", 
+                         f"R$ {saldo_7dias:,.2f}",
+                         delta=f"R$ {variacao_7dias:,.2f}")
+            
+            with col2:
+                if alerts:
+                    st.warning(f"⚠️ {len(alerts)} alertas nos próximos 7 dias")
+                else:
+                    st.success("✅ Nenhum alerta nos próximos 7 dias")
         else:
-            st.info("Nenhum cliente classificado como alto risco atualmente em atraso.")
+            st.info("Não foi possível gerar previsão rápida")
     else:
-        st.info("✅ Nenhuma fatura em atraso identificada ou dados insuficientes para análise de inadimplência.")
-else:
-    st.info("Análise de inadimplência não disponível. Verifique se os dados carregados contêm as colunas necessárias (id_cliente, data_vencimento, valor_fatura) e tente buscar a análise.")
+        st.info("Previsão rápida indisponível")
+        
+except Exception as e:
+    st.info("Previsão rápida indisponível")
 
-# --- Rodapé ---
+# Tabela de dados recentes
+st.subheader("📋 Transações Recentes")
+recent_data = df_data.tail(10).copy()
+
+# Formatar para exibição
+recent_data['data'] = recent_data['data'].dt.strftime('%d/%m/%Y')
+if 'entrada' in recent_data.columns:
+    recent_data['entrada'] = recent_data['entrada'].apply(lambda x: f"R$ {x:,.2f}")
+if 'saida' in recent_data.columns:
+    recent_data['saida'] = recent_data['saida'].apply(lambda x: f"R$ {x:,.2f}")
+if 'saldo' in recent_data.columns:
+    recent_data['saldo'] = recent_data['saldo'].apply(lambda x: f"R$ {x:,.2f}")
+
+# Renomear colunas
+column_mapping = {
+    'data': 'Data',
+    'descricao': 'Descrição',
+    'entrada': 'Entrada',
+    'saida': 'Saída',
+    'saldo': 'Saldo'
+}
+recent_data = recent_data.rename(columns=column_mapping)
+
+st.dataframe(recent_data, use_container_width=True)
+
+# Ações rápidas
+st.subheader("⚡ Ações Rápidas")
+
+col1, col2, col3, col4 = st.columns(4)
+
+with col1:
+    if st.button("📈 Gerar Previsão 30 dias"):
+        st.switch_page("pages/02_Previsao.py")
+
+with col2:
+    if st.button("🎲 Executar Simulação"):
+        st.switch_page("pages/03_Simulacao.py")
+
+with col3:
+    if st.button("📤 Carregar Novos Dados"):
+        st.switch_page("pages/01_Upload.py")
+
+with col4:
+    # Botão para exportar dados
+    csv_data = df_data.to_csv(index=False)
+    st.download_button(
+        label="📥 Exportar Dados",
+        data=csv_data,
+        file_name=f"dados_financeiros_{datetime.now().strftime('%Y%m%d')}.csv",
+        mime="text/csv"
+    )
+
+# Rodapé
 st.markdown("---")
-st.caption(f"RiskAI - Dashboard Geral • Última atualização: {datetime.now().strftime(	'%Y-%m-%d %H:%M	')}")
+col1, col2, col3 = st.columns(3)
 
+with col1:
+    st.caption("🤖 RiskAI - Dashboard Financeiro")
+with col2:
+    st.caption(f"📊 {len(df_data)} transações analisadas")
+with col3:
+    st.caption(f"🕐 Última atualização: {datetime.now().strftime('%d/%m/%Y %H:%M')}")
