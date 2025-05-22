@@ -1,211 +1,367 @@
+"""
+Módulo para processamento e validação de dados financeiros
+"""
 import pandas as pd
-from typing import Optional, Tuple
-from pandas.api.types import is_datetime64_any_dtype
+import numpy as np
+from datetime import datetime, timedelta
+from typing import Optional, Dict, Any, List, Tuple
+import logging
+import re
+from pathlib import Path
 
-# Formato esperado do CSV (colunas obrigatórias e tipos esperados)
-# - data (YYYY-MM-DD ou DD/MM/YYYY)
-# - descricao (texto)
-# - entrada (numérico, opcional, default 0)
-# - saida (numérico, opcional, default 0)
-# - saldo (numérico, opcional, calculado se não presente)
-# - id_cliente (texto, opcional, para análise de inadimplência)
-# - data_vencimento (YYYY-MM-DD ou DD/MM/YYYY, opcional, para inadimplência)
-# - data_pagamento (YYYY-MM-DD ou DD/MM/YYYY, opcional, para inadimplência)
-# - valor_fatura (numérico, opcional, para inadimplência)
+# Configurar logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-def carregar_dados_csv(caminho_arquivo: str) -> Optional[pd.DataFrame]:
-    """Carrega dados de um arquivo CSV, tentando detectar o formato da data."""
-    try:
-        # Tenta ler com formato de data padrão e separador vírgula
-        df = pd.read_csv(caminho_arquivo, dayfirst=False, parse_dates=["data"], decimal=",")
-        print(f"Arquivo {caminho_arquivo} carregado com sucesso (formato data padrão).")
-    except (ValueError, TypeError):
+class DataProcessor:
+    """Classe para processamento de dados financeiros"""
+    
+    def __init__(self):
+        self.last_error = None
+        self.required_columns = ['data', 'descricao', 'entrada', 'saida']
+        self.optional_columns = ['id_cliente', 'categoria', 'subcategoria']
+    
+    def processar_arquivo_completo(self, file_path: str) -> Optional[pd.DataFrame]:
+        """
+        Processa um arquivo CSV completo e retorna DataFrame limpo e validado
+        
+        Args:
+            file_path (str): Caminho para o arquivo CSV
+            
+        Returns:
+            pd.DataFrame ou None: DataFrame processado ou None em caso de erro
+        """
         try:
-            # Tenta ler com data no formato DD/MM/YYYY e separador ponto e vírgula
-            df = pd.read_csv(caminho_arquivo, dayfirst=True, parse_dates=["data"], sep=";", decimal=",")
-            print(f"Arquivo {caminho_arquivo} carregado com sucesso (formato data DD/MM/YYYY, sep=;).")
-        except Exception as e_inner:
-            print(f"Erro ao tentar carregar o arquivo CSV com diferentes formatos: {e_inner}")
-            return None
-    except FileNotFoundError:
-        print(f"Erro: Arquivo {caminho_arquivo} não encontrado.")
-        return None
-    except Exception as e:
-        print(f"Erro inesperado ao carregar o arquivo CSV: {e}")
-        return None
-    return df
-
-def validar_colunas_obrigatorias(df: pd.DataFrame) -> Tuple[bool, str]:
-    """Valida se as colunas obrigatórias básicas existem no DataFrame."""
-    colunas_obrigatorias_minimas = ["data", "descricao"]
-    colunas_faltando = [col for col in colunas_obrigatorias_minimas if col not in df.columns]
-    if colunas_faltando:
-        return False, (f'Colunas obrigatórias faltando: {", ".join(colunas_faltando)}')
-    return True, "Colunas obrigatórias presentes."
-
-def limpar_e_transformar_dados(df: pd.DataFrame) -> Optional[pd.DataFrame]:
-    """Realiza a limpeza básica e transformação dos dados."""
-    df_copia = df.copy()
-
-    # Converter coluna 'data' para datetime (se não foi feito no carregamento)
-    if not pd.api.types.is_datetime64_any_dtype(df_copia["data"]):
-        try:
-            df_copia["data"] = pd.to_datetime(df_copia["data"], dayfirst=True, errors="coerce")
-        except Exception:
-            try:
-                df_copia["data"] = pd.to_datetime(df_copia["data"], dayfirst=False, errors="coerce")
-            except Exception as e:
-                print(f"Erro ao converter coluna 'data' para datetime: {e}")
+            # Verificar se o arquivo existe
+            if not Path(file_path).exists():
+                self.last_error = f"Arquivo não encontrado: {file_path}"
+                logger.error(self.last_error)
                 return None
+            
+            # Ler arquivo CSV com diferentes encodings
+            df = self._ler_csv_com_encoding(file_path)
+            if df is None:
+                return None
+            
+            # Validar estrutura básica
+            if not self._validar_estrutura(df):
+                return None
+            
+            # Limpar e padronizar dados
+            df = self._limpar_dados(df)
+            if df is None:
+                return None
+            
+            # Validar dados financeiros
+            if not self._validar_dados_financeiros(df):
+                return None
+            
+            # Calcular campos derivados
+            df = self._calcular_campos_derivados(df)
+            
+            # Ordenar por data
+            df = df.sort_values('data').reset_index(drop=True)
+            
+            logger.info(f"Arquivo processado com sucesso: {len(df)} registros válidos")
+            return df
+            
+        except Exception as e:
+            self.last_error = f"Erro inesperado ao processar arquivo: {str(e)}"
+            logger.error(self.last_error)
+            return None
     
-    df_copia = df_copia.dropna(subset=["data"]) # Remove linhas onde a data não pôde ser convertida
-
-    # Tratar colunas numéricas (entrada, saida, saldo, valor_fatura)
-    colunas_numericas = ["entrada", "saida", "saldo", "valor_fatura"]
-    for col in colunas_numericas:
-        if col in df_copia.columns:
-            if isinstance(df_copia[col].iloc[0], str): # Verifica se é string para tentar substituir vírgula
-                 df_copia[col] = df_copia[col].str.replace(".", "", regex=False).str.replace(",", ".", regex=False)
-            df_copia[col] = pd.to_numeric(df_copia[col], errors="coerce").fillna(0.0)
-        elif col in ["entrada", "saida"]:
-             df_copia[col] = 0.0 # Adiciona se não existir e for entrada/saida
-
-    # Calcular saldo se não existir ou estiver incorreto (simplificado)
-    if "saldo" not in df_copia.columns or df_copia["saldo"].sum() == 0:
-        df_copia = df_copia.sort_values(by="data")
-        df_copia["fluxo_diario"] = df_copia["entrada"] - df_copia["saida"]
-        df_copia["saldo"] = df_copia["fluxo_diario"].cumsum()
-    
-    # Tratar colunas de data para inadimplência (se existirem)
-    def processar_datas(df_copia):
-        colunas_data = ["data_vencimento", "data_pagamento"]
-        for col in colunas_data:
-            if col in df_copia.columns:
-                # Verifica se já é datetime
-                if is_datetime64_any_dtype(df_copia[col]):
+    def _ler_csv_com_encoding(self, file_path: str) -> Optional[pd.DataFrame]:
+        """Tenta ler CSV com diferentes encodings"""
+        encodings = ['utf-8', 'latin-1', 'cp1252', 'iso-8859-1']
+        separators = [',', ';', '\t']
+        
+        for encoding in encodings:
+            for sep in separators:
+                try:
+                    df = pd.read_csv(file_path, encoding=encoding, sep=sep)
+                    if len(df.columns) >= len(self.required_columns):
+                        logger.info(f"Arquivo lido com encoding {encoding} e separador '{sep}'")
+                        return df
+                except Exception as e:
                     continue
-                
-                # Tenta converter com formato explícito YYYY-MM-DD
-                df_copia[col] = pd.to_datetime(
-                    df_copia[col],
-                    format="%Y-%m-%d",
-                    errors="coerce"
-                )
-                
-                # Se falhar (todos NaT), tenta outros formatos com fallback
-                if df_copia[col].isna().all():
-                    df_copia[col] = pd.to_datetime(
-                        df_copia[col],
-                        dayfirst=True,  # Para formatos DD/MM/YYYY
-                        errors="coerce"
-                    )
         
-        print("Limpeza e transformação de dados concluídas.")
-        return df_copia
-
-def processar_arquivo_completo(caminho_arquivo):
-    """
-    Processa o arquivo CSV completo, realizando todas as etapas necessárias.
+        self.last_error = "Não foi possível ler o arquivo CSV com os encodings e separadores testados"
+        logger.error(self.last_error)
+        return None
     
-    Args:
-        caminho_arquivo (str): Caminho para o arquivo CSV
-        
-    Returns:
-        DataFrame: DataFrame processado ou None em caso de erro
-    """
-    try:
-        # Tentar ler o arquivo CSV
+    def _validar_estrutura(self, df: pd.DataFrame) -> bool:
+        """Valida se o DataFrame tem as colunas necessárias"""
         try:
-            print("Tentando ler o arquivo CSV:", caminho_arquivo)
-            df = pd.read_csv(caminho_arquivo)
-            print(f"Arquivo CSV lido com sucesso, colunas: {df.columns.tolist()}")
+            # Limpar nomes das colunas
+            df.columns = df.columns.str.strip().str.lower()
+            
+            # Mapear possíveis variações de nomes de colunas
+            column_mapping = {
+                'date': 'data',
+                'dt': 'data',
+                'dt_transacao': 'data',
+                'data_transacao': 'data',
+                'description': 'descricao',
+                'desc': 'descricao',
+                'historico': 'descricao',
+                'credit': 'entrada',
+                'credito': 'entrada',
+                'receita': 'entrada',
+                'valor_entrada': 'entrada',
+                'debit': 'saida',
+                'debito': 'saida',
+                'despesa': 'saida',
+                'valor_saida': 'saida',
+                'cliente': 'id_cliente',
+                'client_id': 'id_cliente',
+                'customer_id': 'id_cliente'
+            }
+            
+            # Renomear colunas baseado no mapeamento
+            df.rename(columns=column_mapping, inplace=True)
+            
+            # Verificar colunas obrigatórias
+            missing_columns = [col for col in self.required_columns if col not in df.columns]
+            
+            if missing_columns:
+                self.last_error = f"Colunas obrigatórias ausentes: {missing_columns}. Colunas disponíveis: {list(df.columns)}"
+                logger.error(self.last_error)
+                return False
+            
+            return True
+            
         except Exception as e:
-            erro_msg = f"Erro ao ler o arquivo CSV: {str(e)}"
-            print(erro_msg)
-            raise Exception(erro_msg)
-        
-        # Verificar colunas obrigatórias
-        print("Verificando colunas obrigatórias")
-        colunas_obrigatorias = ['data', 'descricao', 'id_cliente']
-        colunas_faltantes = [col for col in colunas_obrigatorias if col not in df.columns]
-        
-        if colunas_faltantes:
-            erro_msg = f"Colunas obrigatórias ausentes: {', '.join(colunas_faltantes)}"
-            print(erro_msg)
-            raise Exception(erro_msg)
-        
-        # Verificar colunas recomendadas
-        print("Verificando colunas recomendadas")
-        colunas_recomendadas = ['entrada', 'saida']
-        for col in colunas_recomendadas:
-            if col not in df.columns:
-                print(f"Coluna recomendada ausente: {col}, adicionando com valor padrão 0.0")
-                df[col] = 0.0  # Valor padrão se a coluna não existir
-        
-        # Processar as datas
+            self.last_error = f"Erro ao validar estrutura: {str(e)}"
+            logger.error(self.last_error)
+            return False
+    
+    def _limpar_dados(self, df: pd.DataFrame) -> Optional[pd.DataFrame]:
+        """Limpa e padroniza os dados"""
         try:
-            print("Processando coluna de data")
-            df['data'] = pd.to_datetime(df['data'])
-            print("Coluna de data processada com sucesso")
+            df_clean = df.copy()
+            
+            # Limpar coluna de data
+            df_clean['data'] = self._limpar_datas(df_clean['data'])
+            if df_clean['data'].isna().all():
+                self.last_error = "Nenhuma data válida encontrada no arquivo"
+                return None
+            
+            # Limpar valores financeiros
+            df_clean['entrada'] = self._limpar_valores_financeiros(df_clean['entrada'])
+            df_clean['saida'] = self._limpar_valores_financeiros(df_clean['saida'])
+            
+            # Limpar descrições
+            df_clean['descricao'] = df_clean['descricao'].astype(str).str.strip()
+            df_clean['descricao'] = df_clean['descricao'].replace(['nan', 'NaN', ''], 'Transação sem descrição')
+            
+            # Remover linhas com dados críticos ausentes
+            df_clean = df_clean.dropna(subset=['data'])
+            
+            # Remover duplicatas exatas
+            df_clean = df_clean.drop_duplicates().reset_index(drop=True)
+            
+            return df_clean
+            
         except Exception as e:
-            erro_msg = f"Erro ao converter coluna 'data': {str(e)}"
-            print(erro_msg)
-            raise Exception(erro_msg)
-        
-        # Processar colunas opcionais de data
-        print("Processando colunas opcionais de data")
-        for col in ['data_vencimento', 'data_pagamento']:
-            if col in df.columns:
+            self.last_error = f"Erro ao limpar dados: {str(e)}"
+            logger.error(self.last_error)
+            return None
+    
+    def _limpar_datas(self, serie_datas: pd.Series) -> pd.Series:
+        """Limpa e converte datas para formato padrão"""
+        try:
+            # Tentar diferentes formatos de data
+            formatos_data = [
+                '%Y-%m-%d',
+                '%d/%m/%Y',
+                '%m/%d/%Y',
+                '%d-%m-%Y',
+                '%Y/%m/%d',
+                '%d.%m.%Y'
+            ]
+            
+            datas_convertidas = pd.Series(index=serie_datas.index, dtype='datetime64[ns]')
+            
+            for formato in formatos_data:
+                mask_na = datas_convertidas.isna()
+                if not mask_na.any():
+                    break
+                
                 try:
-                    df[col] = pd.to_datetime(df[col], errors='coerce')
-                    print(f"Coluna {col} processada com sucesso")
-                except Exception as e:
-                    print(f"Aviso: Erro ao converter coluna '{col}': {str(e)}")
-                    # Não falhar por causa de colunas opcionais
-        
-        # Processar valores numéricos
-        print("Processando valores numéricos")
-        for col in ['entrada', 'saida', 'valor_fatura']:
-            if col in df.columns:
-                try:
-                    df[col] = pd.to_numeric(df[col], errors='coerce')
-                    df[col] = df[col].fillna(0)
-                    print(f"Coluna {col} processada com sucesso")
-                except Exception as e:
-                    print(f"Aviso: Erro ao converter coluna '{col}': {str(e)}")
-        
-        # Ordenar por data
-        print("Ordenando por data")
-        df = df.sort_values('data')
-        
-        print("Processamento concluído com sucesso")
-        return df
-        
-    except Exception as e:
-        # Capturar e propagar a exceção com mensagem clara
-        erro_msg = str(e) if str(e) else "Erro desconhecido ao processar o arquivo"
-        print(f"Erro no processamento: {erro_msg}")
-        # Propagar a exceção para ser capturada pelo endpoint
-        raise Exception(erro_msg)
+                    datas_temp = pd.to_datetime(serie_datas[mask_na], format=formato, errors='coerce')
+                    datas_convertidas[mask_na] = datas_temp
+                except:
+                    continue
+            
+            # Tentar conversão automática para dados restantes
+            mask_na = datas_convertidas.isna()
+            if mask_na.any():
+                datas_auto = pd.to_datetime(serie_datas[mask_na], errors='coerce', dayfirst=True)
+                datas_convertidas[mask_na] = datas_auto
+            
+            return datas_convertidas
+            
+        except Exception as e:
+            logger.warning(f"Erro ao processar datas: {str(e)}")
+            return pd.to_datetime(serie_datas, errors='coerce')
+    
+    def _limpar_valores_financeiros(self, serie_valores: pd.Series) -> pd.Series:
+        """Limpa e converte valores financeiros"""
+        try:
+            # Converter para string para limpeza
+            valores_str = serie_valores.astype(str)
+            
+            # Remover caracteres não numéricos (exceto pontos, vírgulas e sinais)
+            valores_str = valores_str.str.replace(r'[^\d.,-]', '', regex=True)
+            
+            # Tratar vírgulas como separadores decimais (padrão brasileiro)
+            valores_str = valores_str.str.replace(',', '.')
+            
+            # Converter para numérico
+            valores_numericos = pd.to_numeric(valores_str, errors='coerce')
+            
+            # Substituir NaN por 0
+            valores_numericos = valores_numericos.fillna(0)
+            
+            # Garantir valores não negativos (usar abs para entradas/saídas)
+            valores_numericos = valores_numericos.abs()
+            
+            return valores_numericos
+            
+        except Exception as e:
+            logger.warning(f"Erro ao processar valores financeiros: {str(e)}")
+            return pd.to_numeric(serie_valores, errors='coerce').fillna(0).abs()
+    
+    def _validar_dados_financeiros(self, df: pd.DataFrame) -> bool:
+        """Valida a consistência dos dados financeiros"""
+        try:
+            # Verificar se há pelo menos uma transação com valor > 0
+            if (df['entrada'].sum() + df['saida'].sum()) == 0:
+                self.last_error = "Nenhuma transação financeira válida encontrada"
+                return False
+            
+            # Verificar datas dentro de um range razoável
+            data_min = df['data'].min()
+            data_max = df['data'].max()
+            
+            if pd.isna(data_min) or pd.isna(data_max):
+                self.last_error = "Datas inválidas encontradas"
+                return False
+            
+            # Verificar se as datas não são muito antigas ou futuras
+            hoje = datetime.now()
+            if data_max > hoje + timedelta(days=365):
+                logger.warning("Encontradas datas muito no futuro")
+            
+            if data_min < datetime(1900, 1, 1):
+                logger.warning("Encontradas datas muito antigas")
+            
+            return True
+            
+        except Exception as e:
+            self.last_error = f"Erro na validação financeira: {str(e)}"
+            logger.error(self.last_error)
+            return False
+    
+    def _calcular_campos_derivados(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Calcula campos derivados como saldo acumulado"""
+        try:
+            df_calc = df.copy()
+            
+            # Calcular saldo acumulado
+            df_calc['saldo'] = (df_calc['entrada'] - df_calc['saida']).cumsum()
+            
+            # Adicionar informações temporais
+            df_calc['ano'] = df_calc['data'].dt.year
+            df_calc['mes'] = df_calc['data'].dt.month
+            df_calc['dia_semana'] = df_calc['data'].dt.dayofweek
+            df_calc['dia_mes'] = df_calc['data'].dt.day
+            
+            # Calcular médias móveis (7 e 30 dias)
+            df_calc = df_calc.sort_values('data')
+            df_calc['entrada_ma7'] = df_calc['entrada'].rolling(window=7, min_periods=1).mean()
+            df_calc['saida_ma7'] = df_calc['saida'].rolling(window=7, min_periods=1).mean()
+            df_calc['entrada_ma30'] = df_calc['entrada'].rolling(window=30, min_periods=1).mean()
+            df_calc['saida_ma30'] = df_calc['saida'].rolling(window=30, min_periods=1).mean()
+            
+            # Adicionar flags de categorização automática
+            df_calc = self._categorizar_transacoes(df_calc)
+            
+            return df_calc
+            
+        except Exception as e:
+            logger.error(f"Erro ao calcular campos derivados: {str(e)}")
+            return df
+    
+    def _categorizar_transacoes(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Categoriza transações automaticamente baseado na descrição"""
+        try:
+            df_cat = df.copy()
+            
+            # Dicionário de palavras-chave para categorização
+            categorias = {
+                'alimentacao': ['restaurante', 'lanchonete', 'mercado', 'supermercado', 'padaria', 'alimentacao', 'comida'],
+                'transporte': ['uber', 'taxi', 'combustivel', 'posto', 'transporte', 'onibus', 'metro'],
+                'saude': ['farmacia', 'hospital', 'medico', 'clinica', 'saude', 'remedio'],
+                'educacao': ['escola', 'faculdade', 'curso', 'livro', 'educacao'],
+                'lazer': ['cinema', 'teatro', 'bar', 'festa', 'lazer', 'entretenimento'],
+                'salario': ['salario', 'pagamento', 'remuneracao', 'vencimento'],
+                'vendas': ['venda', 'receita', 'faturamento', 'cliente']
+            }
+            
+            # Inicializar coluna de categoria
+            df_cat['categoria_auto'] = 'outros'
+            
+            # Aplicar categorização
+            for categoria, palavras in categorias.items():
+                for palavra in palavras:
+                    mask = df_cat['descricao'].str.lower().str.contains(palavra, na=False)
+                    df_cat.loc[mask, 'categoria_auto'] = categoria
+            
+            return df_cat
+            
+        except Exception as e:
+            logger.warning(f"Erro na categorização automática: {str(e)}")
+            return df
+    
+    def gerar_relatorio_qualidade(self, df: pd.DataFrame) -> Dict[str, Any]:
+        """Gera relatório de qualidade dos dados processados"""
+        try:
+            relatorio = {
+                'total_registros': len(df),
+                'periodo': {
+                    'data_inicio': df['data'].min().strftime('%Y-%m-%d') if not df.empty else None,
+                    'data_fim': df['data'].max().strftime('%Y-%m-%d') if not df.empty else None,
+                    'dias_periodo': (df['data'].max() - df['data'].min()).days if not df.empty else 0
+                },
+                'valores': {
+                    'total_entradas': float(df['entrada'].sum()),
+                    'total_saidas': float(df['saida'].sum()),
+                    'saldo_final': float(df['saldo'].iloc[-1]) if not df.empty else 0,
+                    'maior_entrada': float(df['entrada'].max()),
+                    'maior_saida': float(df['saida'].max())
+                },
+                'estatisticas': {
+                    'media_entrada_diaria': float(df.groupby('data')['entrada'].sum().mean()),
+                    'media_saida_diaria': float(df.groupby('data')['saida'].sum().mean()),
+                    'dias_com_transacoes': df['data'].nunique(),
+                    'transacoes_por_dia': float(len(df) / df['data'].nunique()) if df['data'].nunique() > 0 else 0
+                },
+                'qualidade': {
+                    'registros_com_descricao': int((df['descricao'] != 'Transação sem descrição').sum()),
+                    'registros_sem_valor': int(((df['entrada'] == 0) & (df['saida'] == 0)).sum()),
+                    'duplicatas_potenciais': int(df.duplicated(subset=['data', 'entrada', 'saida']).sum())
+                }
+            }
+            
+            if 'categoria_auto' in df.columns:
+                relatorio['categorias'] = df['categoria_auto'].value_counts().to_dict()
+            
+            return relatorio
+            
+        except Exception as e:
+            logger.error(f"Erro ao gerar relatório de qualidade: {str(e)}")
+            return {}
 
-# Inicializar o atributo de erro
-processar_arquivo_completo.last_error = ""
-
-
-
-if __name__ == "__main__":
-    # Exemplo de uso (crie um data/example.csv para testar)
-    # Este caminho é relativo à raiz do projeto se você executar `python core/data_processing.py` de lá
-    # ou relativo a `core/` se executar de dentro da pasta `core/`.
-    # Para testes robustos, use caminhos absolutos ou fixtures em um framework de teste.
-    caminho_exemplo = "c:/Users/hp/Documents/Simple.Tech/RiskAI_PTI/data/example.csv" 
-
-    dados_processados = processar_arquivo_completo(caminho_exemplo)
-
-    if dados_processados is not None:
-        print("\n--- Dados Processados (Head) ---")
-        print(dados_processados.head())
-        print("\n--- Tipos de Dados ---")
-        print(dados_processados.dtypes)
-        print("\n--- Informações do DataFrame ---")
-        dados_processados.info()
+# Instância global para uso nos endpoints
+data_processing = DataProcessor()

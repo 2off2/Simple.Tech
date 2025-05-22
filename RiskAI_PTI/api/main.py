@@ -1,113 +1,68 @@
-# api/main.py
-import pytest
-from fastapi.testclient import TestClient
-import sys
+"""
+Aplicação principal FastAPI para RiskAI_PTI
+"""
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 import os
-import pandas as pd
+import sys
 
-# Adiciona o diretório raiz ao path para importar os módulos
+# Adiciona o diretório raiz ao path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-# Importa a função create_app do main.py
-from api.main import create_app
+# Importar routers dos endpoints
+from api.endpoints.data import router as data_router
+from api.endpoints.predictions import router as predictions_router
+from api.endpoints.simulations import router as simulations_router
 
-# Cria uma instância da aplicação para testes
+def create_app() -> FastAPI:
+    """
+    Cria e configura a aplicação FastAPI
+    """
+    app = FastAPI(
+        title="RiskAI PTI",
+        description="API para análise de risco e previsão de fluxo de caixa",
+        version="1.0.0"
+    )
+    
+    # Configurar CORS
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],  # Em produção, especificar origins específicos
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+    
+    # Registrar routers
+    app.include_router(data_router, prefix="/api/data", tags=["data"])
+    app.include_router(predictions_router, prefix="/api/predictions", tags=["predictions"])
+    app.include_router(simulations_router, prefix="/api/simulations", tags=["simulations"])
+    
+    # Endpoint raiz
+    @app.get("/")
+    async def root():
+        return {
+            "message": "RiskAI PTI API está funcionando",
+            "version": "1.0.0",
+            "endpoints": [
+                "/api/data/upload_csv",
+                "/api/data/view_processed", 
+                "/api/predictions/cashflow",
+                "/api/simulations/scenarios"
+            ]
+        }
+    
+    # Endpoint de saúde
+    @app.get("/health")
+    async def health_check():
+        return {"status": "healthy"}
+    
+    return app
+
+# Criar instância da aplicação
 app = create_app()
 
-# Importa o state
-import api.endpoints.state as state
-
-# Garantir que o diretório de uploads exista
-os.makedirs(state.UPLOAD_DIR, exist_ok=True)
-
-# Cliente de teste
-client = TestClient(app)
-
-# Fixture para configurar e limpar o ambiente de teste
-@pytest.fixture(autouse=True)
-def setup_and_teardown():
-    # Setup - executado antes de cada teste
-    state.global_processed_df = None
-    state.global_prediction_model = None
-    state.global_historical_stats = None
-    
-    # Executa o teste
-    yield
-    
-    # Teardown - executado após cada teste
-    state.global_processed_df = None
-    state.global_prediction_model = None
-    state.global_historical_stats = None
-    
-    # Limpa arquivos temporários
-    for file in os.listdir(state.UPLOAD_DIR):
-        file_path = os.path.join(state.UPLOAD_DIR, file)
-        if os.path.isfile(file_path):
-            os.remove(file_path)
-
-# Testes para os endpoints da API
-def test_root():
-    response = client.get("/")
-    assert response.status_code == 200
-    assert "message" in response.json()
-
-def test_view_processed_data():
-    response = client.get("/api/data/view_processed")
-    assert response.status_code == 404  # Deve falhar se não houver dados processados
-
-def test_upload_csv():
-    """Testa o upload e processamento de um arquivo CSV."""
-    # Criar diretório de teste se não existir
-    test_dir = os.path.join(os.path.dirname(__file__), "test_data")
-    os.makedirs(test_dir, exist_ok=True)
-    
-    # Caminho completo para o arquivo de teste
-    test_file_path = os.path.join(test_dir, "dados_teste.csv")
-    
-    # Criar um arquivo de teste temporário
-    with open(test_file_path, "w") as f:
-        f.write("data,descricao,id_cliente,entrada,saida\n")
-        f.write("2023-01-01,Teste,C001,100.0,0.0\n")
-    
-    try:
-        # Testar o upload
-        with open(test_file_path, "rb") as f:
-            response = client.post(
-                "/api/data/upload_csv",
-                files={"file": ("dados_teste.csv", f, "text/csv")}
-            )
-        
-        # Verificar resposta
-        assert response.status_code == 200
-        assert "filename" in response.json()
-        assert response.json()["message"] == "Arquivo CSV carregado e processado com sucesso."
-        
-        # Verificar se os dados foram processados
-        response_view = client.get("/api/data/view_processed")
-        assert response_view.status_code == 200
-        
-    finally:
-        # Limpar após o teste
-        if os.path.exists(test_file_path):
-            os.remove(test_file_path)
-
-def test_prediction_without_data():
-    response = client.post("/api/prediction/predict", json={"months": 3})
-    assert response.status_code == 404  # Deve falhar se não houver dados processados
-
-def test_risk_analysis_without_data():
-    response = client.get("/api/risk/analyze")
-    assert response.status_code == 404  # Deve falhar se não houver dados processados
-
-def test_scenario_simulation_without_data():
-    response = client.post("/api/scenario/simulate", 
-                          json={"scenario_type": "optimistic", "impact_factor": 0.1})
-    assert response.status_code == 404  # Deve falhar se não houver dados processados
-
-def test_customer_analysis_without_data():
-    response = client.get("/api/customer/analyze")
-    assert response.status_code == 404  # Deve falhar se não houver dados processados
-
-# Executa os testes se o arquivo for executado diretamente
+# Para execução com uvicorn
 if __name__ == "__main__":
-    pytest.main(["-v"])
+    import uvicorn
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
