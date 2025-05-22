@@ -5,15 +5,15 @@ import os
 import json
 from datetime import datetime
 
-# URL base da API (ajuste se necessário)
-API_BASE_URL = "http://localhost:8000"  # Assume que a API FastAPI está rodando localmente na porta 8000
+# URL base da API
+API_BASE_URL = "http://localhost:8000"
 
 # --- Configuração da Página ---
 st.set_page_config(
     page_title="Upload de Dados - RiskAI",
     page_icon="📤",
     layout="wide"
- )
+)
 
 # --- Título e Descrição ---
 st.title("Upload de Dados Financeiros")
@@ -23,12 +23,20 @@ O arquivo deve estar no formato CSV e conter as colunas necessárias para o proc
 """)
 
 # --- Funções Auxiliares ---
+def test_api_connection():
+    """Testa a conexão com a API"""
+    try:
+        response = requests.get(f"{API_BASE_URL}/health", timeout=5)
+        return response.status_code == 200
+    except:
+        return False
+
 def upload_file_to_api(uploaded_file_object):
     """Envia o arquivo para o endpoint de upload da API."""
     if uploaded_file_object is not None:
         files = {"file": (uploaded_file_object.name, uploaded_file_object.getvalue(), uploaded_file_object.type)}
         try:
-            response = requests.post(f"{API_BASE_URL}/data/upload_csv", files=files, timeout=30)
+            response = requests.post(f"{API_BASE_URL}/api/data/upload_csv", files=files, timeout=30)
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException as e:
@@ -39,7 +47,7 @@ def upload_file_to_api(uploaded_file_object):
 def get_processed_data_from_api(limit=10):
     """Busca os dados processados da API."""
     try:
-        response = requests.get(f"{API_BASE_URL}/data/view_processed?limit={limit}", timeout=10)
+        response = requests.get(f"{API_BASE_URL}/api/data/view_processed?limit={limit}", timeout=10)
         response.raise_for_status()
         return response.json()
     except requests.exceptions.RequestException as e:
@@ -50,8 +58,8 @@ def create_example_csv():
     """Cria um arquivo CSV de exemplo para download."""
     data = {
         "data": [
-            "2023-01-01", "2023-01-05", "2023-01-10", "2023-01-15", "2023-01-20",
-            "2023-01-25", "2023-01-31", "2023-02-05", "2023-02-10", "2023-02-15"
+            "2024-01-01", "2024-01-05", "2024-01-10", "2024-01-15", "2024-01-20",
+            "2024-01-25", "2024-01-31", "2024-02-05", "2024-02-10", "2024-02-15"
         ],
         "descricao": [
             "Venda Produto A", "Pagamento Fornecedor", "Venda Produto B", 
@@ -62,12 +70,12 @@ def create_example_csv():
         "saida": [0.00, 500.00, 0.00, 300.00, 0.00, 1200.00, 0.00, 800.00, 0.00, 400.00],
         "id_cliente": ["C001", "F001", "C002", "ADM", "C003", "RH", "C001", "ADM", "C002", "MKT"],
         "data_vencimento": [
-            "2023-01-15", "2023-01-05", "2023-01-25", "2023-01-15", "2023-02-05", 
-            "2023-01-25", "2023-02-15", "2023-02-05", "2023-02-25", "2023-02-15"
+            "2024-01-15", "2024-01-05", "2024-01-25", "2024-01-15", "2024-02-05", 
+            "2024-01-25", "2024-02-15", "2024-02-05", "2024-02-25", "2024-02-15"
         ],
         "data_pagamento": [
-            "2023-01-10", "2023-01-05", "2023-01-20", "2023-01-15", "", 
-            "2023-01-25", "", "2023-02-05", "", "2023-02-15"
+            "2024-01-10", "2024-01-05", "2024-01-20", "2024-01-15", "", 
+            "2024-01-25", "", "2024-02-05", "", "2024-02-15"
         ],
         "valor_fatura": [1000.00, 500.00, 1500.00, 300.00, 800.00, 1200.00, 1200.00, 800.00, 1800.00, 400.00]
     }
@@ -83,6 +91,15 @@ if "api_error" not in st.session_state:
     st.session_state.api_error = None
 if "upload_success" not in st.session_state:
     st.session_state.upload_success = False
+
+# --- Verificar Status da API ---
+api_status = test_api_connection()
+if not api_status:
+    st.error("❌ API não está respondendo. Verifique se a API está rodando em http://localhost:8000")
+    st.info("Para iniciar a API, execute: `uvicorn api.main:app --reload` na pasta do projeto")
+    st.stop()
+else:
+    st.success("✅ API conectada e funcionando")
 
 # --- Layout Principal ---
 col1, col2 = st.columns([2, 1])
@@ -102,6 +119,8 @@ with col1:
         
         # Exibir prévia do arquivo carregado
         try:
+            # Reset do ponteiro do arquivo para o início
+            uploaded_file.seek(0)
             df_preview = pd.read_csv(uploaded_file)
             st.subheader("Prévia do Arquivo Carregado")
             st.dataframe(df_preview.head(5), use_container_width=True)
@@ -117,11 +136,13 @@ with col1:
                 
                 # Botão para processar o arquivo
                 if st.button("Processar Arquivo via API", key="process_button"):
+                    # Reset do ponteiro do arquivo novamente antes do upload
+                    uploaded_file.seek(0)
                     with st.spinner("Enviando e processando arquivo..."):
-                        st.session_state.api_error = None  # Limpar erros anteriores
+                        st.session_state.api_error = None
                         api_response = upload_file_to_api(uploaded_file)
                         
-                        if api_response and "message" in api_response and "Sucesso" in api_response["message"]:
+                        if api_response and "message" in api_response and "sucesso" in api_response["message"].lower():
                             st.session_state.uploaded_file_name = api_response.get("filename")
                             st.session_state.upload_success = True
                             
@@ -197,8 +218,6 @@ if st.session_state.upload_success and st.session_state.processed_data_preview i
     with col_next1:
         st.info("Agora você pode gerar previsões de fluxo de caixa com base nos dados carregados.")
         if st.button("Ir para Previsão de Fluxo de Caixa", key="goto_prediction"):
-            # No Streamlit, não podemos navegar programaticamente entre páginas,
-            # mas podemos sugerir ao usuário que clique na página correspondente no menu lateral
             st.markdown("Por favor, clique em **2. Previsão** no menu lateral.")
     
     with col_next2:

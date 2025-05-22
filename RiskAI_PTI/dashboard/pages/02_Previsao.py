@@ -1,20 +1,18 @@
-# dashboard/pages/02_Previsao.py
-
 import streamlit as st
 import pandas as pd
 import requests
 import plotly.graph_objects as go
 from datetime import datetime
 
-# URL base da API (ajuste se necessário)
-API_BASE_URL = "http://localhost:8000"  # Assume que a API FastAPI está rodando localmente na porta 8000
+# URL base da API
+API_BASE_URL = "http://localhost:8000"
 
 # --- Configuração da Página ---
 st.set_page_config(
     page_title="Previsão de Fluxo de Caixa - RiskAI",
     page_icon="📈",
     layout="wide"
- )
+)
 
 # --- Título e Descrição ---
 st.title("Previsão de Fluxo de Caixa e Alertas de Risco")
@@ -23,7 +21,7 @@ Nesta página, você pode gerar previsões para o seu fluxo de caixa com base no
 e visualizar alertas de risco identificados.
 """)
 
-# --- Estado da Sessão (para verificar se os dados foram carregados) ---
+# --- Estado da Sessão ---
 if "uploaded_file_name" not in st.session_state:
     st.session_state.uploaded_file_name = None
 if "api_error" not in st.session_state:
@@ -33,19 +31,27 @@ if "prediction_data" not in st.session_state:
 if "alert_data" not in st.session_state:
     st.session_state.alert_data = None
 
-# --- Funções Auxiliares para Interagir com a API ---
+# --- Funções Auxiliares ---
+def test_api_connection():
+    """Testa a conexão com a API"""
+    try:
+        response = requests.get(f"{API_BASE_URL}/health", timeout=5)
+        return response.status_code == 200
+    except:
+        return False
+
 def get_cashflow_prediction_from_api(days_to_predict: int):
     """Busca a previsão de fluxo de caixa e alertas da API."""
     try:
         params = {"days_to_predict": days_to_predict}
-        response = requests.post(f"{API_BASE_URL}/predict/cashflow", json=params, timeout=60) # Timeout maior para previsão
+        response = requests.post(f"{API_BASE_URL}/api/predictions/cashflow", json=params, timeout=60)
         response.raise_for_status()
         return response.json()
     except requests.exceptions.HTTPError as http_err:
         try:
-            error_detail = http_err.response.json( ).get("detail", str(http_err ))
+            error_detail = http_err.response.json().get("detail", str(http_err))
         except Exception:
-            error_detail = str(http_err )
+            error_detail = str(http_err)
         st.session_state.api_error = f"Erro da API ao gerar previsão: {error_detail}"
         return None
     except requests.exceptions.RequestException as e:
@@ -55,13 +61,17 @@ def get_cashflow_prediction_from_api(days_to_predict: int):
         st.session_state.api_error = f"Erro inesperado ao processar previsão: {e}"
         return None
 
-# --- Layout Principal ---
+# --- Verificar Status da API ---
+api_status = test_api_connection()
+if not api_status:
+    st.error("❌ API não está respondendo. Verifique se a API está rodando em http://localhost:8000")
+    st.stop()
 
-# Verificar se os dados foram carregados
+# --- Verificar se os dados foram carregados ---
 if st.session_state.uploaded_file_name is None:
     st.warning("⚠️ Por favor, carregue um arquivo CSV na página **1. Upload de Dados** primeiro.")
-    st.image("https://img.icons8.com/dusk/128/000000/warning-shield.png", width=128 )
-    st.stop() # Interrompe a execução da página se os dados não foram carregados
+    st.image("https://img.icons8.com/dusk/128/000000/warning-shield.png", width=128)
+    st.stop()
 
 st.success(f"Arquivo ativo para análise: **{st.session_state.uploaded_file_name}**")
 st.markdown("---")
@@ -80,7 +90,7 @@ days_to_predict_input = st.number_input(
 
 if st.button("Gerar Previsão e Analisar Riscos", key="generate_prediction_button"):
     with st.spinner("Gerando previsão e analisando riscos... Isso pode levar alguns instantes."):
-        st.session_state.api_error = None # Limpar erros anteriores
+        st.session_state.api_error = None
         st.session_state.prediction_data = None
         st.session_state.alert_data = None
         
@@ -96,7 +106,7 @@ if st.button("Gerar Previsão e Analisar Riscos", key="generate_prediction_butto
                 st.error(f"Erro ao obter dados da API: {error_msg}")
                 st.session_state.api_error = f"Erro da API: {error_msg}"
         else:
-            if not st.session_state.api_error: # Se nenhum erro específico foi definido pela função da API
+            if not st.session_state.api_error:
                 st.error("Falha ao obter resposta da API para previsão.")
 
     if st.session_state.api_error:
@@ -117,9 +127,9 @@ if st.session_state.prediction_data is not None:
         fig.add_trace(go.Scatter(
             x=df_pred["data"],
             y=df_pred["saldo_previsto"],
-            mode=	"lines+markers",
-            name=	"Saldo Previsto",
-            line=dict(color=	"royalblue", width=2),
+            mode="lines+markers",
+            name="Saldo Previsto",
+            line=dict(color="royalblue", width=2),
             marker=dict(size=5)
         ))
         
@@ -163,5 +173,4 @@ if st.session_state.alert_data is not None:
 
 # --- Rodapé ---
 st.markdown("---")
-st.caption(f"RiskAI - Previsão de Fluxo de Caixa • Última atualização: {datetime.now().strftime(	'%Y-%m-%d %H:%M	')}")
-
+st.caption(f"RiskAI - Previsão de Fluxo de Caixa • Última atualização: {datetime.now().strftime('%Y-%m-%d %H:%M')}")

@@ -33,7 +33,7 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
     
-    # Registrar routers
+    # Registrar routers com prefixos corretos
     app.include_router(data_router, prefix="/api/data", tags=["data"])
     app.include_router(predictions_router, prefix="/api/predictions", tags=["predictions"])
     app.include_router(simulations_router, prefix="/api/simulations", tags=["simulations"])
