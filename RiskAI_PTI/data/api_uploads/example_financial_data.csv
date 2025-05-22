@@ -1,0 +1,11 @@
+data,descricao,entrada,saida,id_cliente,data_vencimento,data_pagamento,valor_fatura
+2023-01-01,Venda Produto A,1000.0,0.0,C001,2023-01-15,2023-01-10,1000.0
+2023-01-05,Pagamento Fornecedor,0.0,500.0,F001,2023-01-05,2023-01-05,500.0
+2023-01-10,Venda Produto B,1500.0,0.0,C002,2023-01-25,2023-01-20,1500.0
+2023-01-15,Despesa Operacional,0.0,300.0,ADM,2023-01-15,2023-01-15,300.0
+2023-01-20,Venda Produto C,800.0,0.0,C003,2023-02-05,,800.0
+2023-01-25,Pagamento Funcionários,0.0,1200.0,RH,2023-01-25,2023-01-25,1200.0
+2023-01-31,Venda Produto A,1200.0,0.0,C001,2023-02-15,,1200.0
+2023-02-05,Pagamento Aluguel,0.0,800.0,ADM,2023-02-05,2023-02-05,800.0
+2023-02-10,Venda Produto B,1800.0,0.0,C002,2023-02-25,,1800.0
+2023-02-15,Despesa Marketing,0.0,400.0,MKT,2023-02-15,2023-02-15,400.0

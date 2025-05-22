@@ -39,7 +39,10 @@ async def upload_csv_file(file: UploadFile = File(...)):
         # Processar o arquivo carregado
         df = data_processing.processar_arquivo_completo(file_path)
         if df is None:
-            raise HTTPException(status_code=400, detail="Erro ao processar o arquivo CSV. Verifique o formato e o conteúdo.")
+            # Obter a mensagem de erro específica
+            error_msg = getattr(data_processing.processar_arquivo_completo, 'last_error', 
+                               "Erro desconhecido ao processar o arquivo CSV")
+            raise HTTPException(status_code=400, detail=error_msg)
         
         state.global_processed_df = df
         state.global_prediction_model = None  # Resetar modelo se novos dados forem carregados
@@ -51,9 +54,18 @@ async def upload_csv_file(file: UploadFile = File(...)):
             file_path=file_path
         )
     except HTTPException as http_exc:
-        return FileUploadResponse(filename=file.filename, message="Erro HTTP", error=str(http_exc.detail))
+        return FileUploadResponse(
+            filename=file.filename, 
+            message="Erro de validação", 
+            error=http_exc.detail
+         )
     except Exception as e:
-        return FileUploadResponse(filename=file.filename, message="Erro interno do servidor", error=str(e))
+        return FileUploadResponse(
+            filename=file.filename, 
+            message="Erro interno do servidor", 
+            error=str(e) if str(e) else "Erro desconhecido"
+        )
+
 
 @router.get("/view_processed")
 async def view_processed_data(limit: int = 5):
@@ -71,6 +83,7 @@ async def view_processed_data(limit: int = 5):
     except HTTPException as http_exc:
         raise http_exc
     except Exception as e:
+        print(f"Erro ao visualizar dados: {str(e )}")
         return JSONResponse(
             status_code=500,
             content={
@@ -78,9 +91,3 @@ async def view_processed_data(limit: int = 5):
                 "error": str(e)
             }
         )
-@router.get("/view_processed")
-async def view_processed_data(limit: int = 5):
-    global global_processed_df
-    if global_processed_df is None:
-        raise HTTPException(status_code=404, detail="Nenhum dado processado disponível. Faça upload de um arquivo primeiro.")
-    return JSONResponse(content=global_processed_df.head(limit).to_dict(orient="records"))

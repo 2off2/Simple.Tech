@@ -1,5 +1,6 @@
 import pandas as pd
 from typing import Optional, Tuple
+from pandas.api.types import is_datetime64_any_dtype
 
 # Formato esperado do CSV (colunas obrigatórias e tipos esperados)
 # - data (YYYY-MM-DD ou DD/MM/YYYY)
@@ -76,36 +77,120 @@ def limpar_e_transformar_dados(df: pd.DataFrame) -> Optional[pd.DataFrame]:
         df_copia["saldo"] = df_copia["fluxo_diario"].cumsum()
     
     # Tratar colunas de data para inadimplência (se existirem)
-    colunas_data_inadimplencia = ["data_vencimento", "data_pagamento"]
-    for col in colunas_data_inadimplencia:
-        if col in df_copia.columns:
-            if not pd.api.types.is_datetime64_any_dtype(df_copia[col]):
-                try:
-                    df_copia[col] = pd.to_datetime(df_copia[col], dayfirst=True, errors="coerce")
-                except Exception:
-                    df_copia[col] = pd.to_datetime(df_copia[col], dayfirst=False, errors="coerce")
-
-    print("Limpeza e transformação de dados concluídas.")
-    return df_copia
-
-def processar_arquivo_completo(caminho_arquivo: str) -> Optional[pd.DataFrame]:
-    """Função principal para carregar, validar e limpar dados de um CSV."""
-    df = carregar_dados_csv(caminho_arquivo)
-    if df is None:
-        return None
-
-    valido, msg_validacao = validar_colunas_obrigatorias(df)
-    if not valido:
-        print(f"Erro de validação: {msg_validacao}")
-        return None
-    
-    df_limpo = limpar_e_transformar_dados(df)
-    if df_limpo is None:
-        print("Erro durante a limpeza e transformação dos dados.")
-        return None
+    def processar_datas(df_copia):
+        colunas_data = ["data_vencimento", "data_pagamento"]
+        for col in colunas_data:
+            if col in df_copia.columns:
+                # Verifica se já é datetime
+                if is_datetime64_any_dtype(df_copia[col]):
+                    continue
+                
+                # Tenta converter com formato explícito YYYY-MM-DD
+                df_copia[col] = pd.to_datetime(
+                    df_copia[col],
+                    format="%Y-%m-%d",
+                    errors="coerce"
+                )
+                
+                # Se falhar (todos NaT), tenta outros formatos com fallback
+                if df_copia[col].isna().all():
+                    df_copia[col] = pd.to_datetime(
+                        df_copia[col],
+                        dayfirst=True,  # Para formatos DD/MM/YYYY
+                        errors="coerce"
+                    )
         
-    print("Arquivo processado com sucesso.")
-    return df_limpo
+        print("Limpeza e transformação de dados concluídas.")
+        return df_copia
+
+def processar_arquivo_completo(caminho_arquivo):
+    """
+    Processa o arquivo CSV completo, realizando todas as etapas necessárias.
+    
+    Args:
+        caminho_arquivo (str): Caminho para o arquivo CSV
+        
+    Returns:
+        DataFrame: DataFrame processado ou None em caso de erro
+    """
+    try:
+        # Tentar ler o arquivo CSV
+        try:
+            print("Tentando ler o arquivo CSV:", caminho_arquivo)
+            df = pd.read_csv(caminho_arquivo)
+            print(f"Arquivo CSV lido com sucesso, colunas: {df.columns.tolist()}")
+        except Exception as e:
+            erro_msg = f"Erro ao ler o arquivo CSV: {str(e)}"
+            print(erro_msg)
+            raise Exception(erro_msg)
+        
+        # Verificar colunas obrigatórias
+        print("Verificando colunas obrigatórias")
+        colunas_obrigatorias = ['data', 'descricao', 'id_cliente']
+        colunas_faltantes = [col for col in colunas_obrigatorias if col not in df.columns]
+        
+        if colunas_faltantes:
+            erro_msg = f"Colunas obrigatórias ausentes: {', '.join(colunas_faltantes)}"
+            print(erro_msg)
+            raise Exception(erro_msg)
+        
+        # Verificar colunas recomendadas
+        print("Verificando colunas recomendadas")
+        colunas_recomendadas = ['entrada', 'saida']
+        for col in colunas_recomendadas:
+            if col not in df.columns:
+                print(f"Coluna recomendada ausente: {col}, adicionando com valor padrão 0.0")
+                df[col] = 0.0  # Valor padrão se a coluna não existir
+        
+        # Processar as datas
+        try:
+            print("Processando coluna de data")
+            df['data'] = pd.to_datetime(df['data'])
+            print("Coluna de data processada com sucesso")
+        except Exception as e:
+            erro_msg = f"Erro ao converter coluna 'data': {str(e)}"
+            print(erro_msg)
+            raise Exception(erro_msg)
+        
+        # Processar colunas opcionais de data
+        print("Processando colunas opcionais de data")
+        for col in ['data_vencimento', 'data_pagamento']:
+            if col in df.columns:
+                try:
+                    df[col] = pd.to_datetime(df[col], errors='coerce')
+                    print(f"Coluna {col} processada com sucesso")
+                except Exception as e:
+                    print(f"Aviso: Erro ao converter coluna '{col}': {str(e)}")
+                    # Não falhar por causa de colunas opcionais
+        
+        # Processar valores numéricos
+        print("Processando valores numéricos")
+        for col in ['entrada', 'saida', 'valor_fatura']:
+            if col in df.columns:
+                try:
+                    df[col] = pd.to_numeric(df[col], errors='coerce')
+                    df[col] = df[col].fillna(0)
+                    print(f"Coluna {col} processada com sucesso")
+                except Exception as e:
+                    print(f"Aviso: Erro ao converter coluna '{col}': {str(e)}")
+        
+        # Ordenar por data
+        print("Ordenando por data")
+        df = df.sort_values('data')
+        
+        print("Processamento concluído com sucesso")
+        return df
+        
+    except Exception as e:
+        # Capturar e propagar a exceção com mensagem clara
+        erro_msg = str(e) if str(e) else "Erro desconhecido ao processar o arquivo"
+        print(f"Erro no processamento: {erro_msg}")
+        # Propagar a exceção para ser capturada pelo endpoint
+        raise Exception(erro_msg)
+
+# Inicializar o atributo de erro
+processar_arquivo_completo.last_error = ""
+
 
 
 if __name__ == "__main__":
@@ -113,7 +198,7 @@ if __name__ == "__main__":
     # Este caminho é relativo à raiz do projeto se você executar `python core/data_processing.py` de lá
     # ou relativo a `core/` se executar de dentro da pasta `core/`.
     # Para testes robustos, use caminhos absolutos ou fixtures em um framework de teste.
-    caminho_exemplo = "C:/Users/23011372/Documents/Simple_Tech_2/RiskAI_PTI/data/example.csv" 
+    caminho_exemplo = "c:/Users/hp/Documents/Simple.Tech/RiskAI_PTI/data/example.csv" 
 
     dados_processados = processar_arquivo_completo(caminho_exemplo)
 
