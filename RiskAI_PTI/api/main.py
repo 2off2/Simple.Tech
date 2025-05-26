@@ -3,6 +3,7 @@ Aplicação principal FastAPI para RiskAI_PTI
 """
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from datetime import datetime
 import os
 import sys
 
@@ -66,3 +67,40 @@ app = create_app()
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+
+@app.get("/host-config")
+async def host_config():
+    """
+    Endpoint para retornar configurações do host/ambiente
+    """
+    try:
+        from datetime import datetime
+        
+        config = {
+            'environment': os.getenv('ENVIRONMENT', 'development'),
+            'api_version': '1.0.0',
+            'host': os.getenv('HOST', 'localhost'),
+            'port': int(os.getenv('PORT', 8000)),
+            'debug_mode': os.getenv('DEBUG', 'False').lower() == 'true',
+            'database_connected': True,
+            'features': {
+                'dashboard': True,
+                'upload': True,
+                'previsao': True,
+                'simulacao': True
+            },
+            'cors_enabled': True,
+            'max_upload_size': '10MB',
+            'timestamp': datetime.now().isoformat()
+        }
+        
+        return config
+    except Exception as e:
+        from fastapi import HTTPException
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "error": "Erro ao obter configurações",
+                "message": str(e)
+            }
+        )
