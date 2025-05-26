@@ -5,6 +5,7 @@ import pandas as pd
 import os
 from typing import Optional, Dict, Any
 import sys
+import numpy as np
 
 # Adiciona o diretório raiz ao path para que o Python possa encontrar os módulos
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
@@ -160,32 +161,53 @@ async def upload_csv_file(file: UploadFile = File(...)):
 @router.get("/view_processed")
 async def view_processed_data(limit: int = 5):
     try:
-        if state.global_processed_df is None:
+        if state.global_processed_df is None or state.global_processed_df.empty:
+            # Adicionado verificação de DataFrame vazio
             raise HTTPException(
                 status_code=404,
-                detail="Nenhum dado processado disponível. Faça upload de um arquivo primeiro"
+                detail="Nenhum dado processado disponível ou DataFrame vazio. Faça upload de um arquivo primeiro."
             )
-        
-        # Converter datas para string para serialização JSON
+
+        # Pegar as primeiras 'limit' linhas
         df_copy = state.global_processed_df.head(limit).copy()
-        
-        # Converter colunas de data para string
-        date_columns = df_copy.select_dtypes(include=['datetime64']).columns
-        for col in date_columns:
-            df_copy[col] = df_copy[col].dt.strftime('%Y-%m-%d')
-        
+
+        # Lista de colunas de data conhecidas que podem existir
+        possible_date_columns = ['data', 'data_vencimento', 'data_pagamento']
+
+        for col in possible_date_columns:
+            if col in df_copy.columns:
+                # Verificar se a coluna contém dados antes de tentar converter
+                if not df_copy[col].isnull().all():
+                    # Tentar converter para string, tratando NaT (Not a Time) explicitamente
+                    try:
+                        # Primeiro, garantir que é datetime, se possível, tratando erros
+                        # pd.to_datetime pode ser redundante se processar_arquivo_csv já fez, mas garante
+                        df_copy[col] = pd.to_datetime(df_copy[col], errors='coerce')
+                        # Agora formatar, tratando NaT que não podem ser formatados
+                        df_copy[col] = df_copy[col].apply(lambda x: x.strftime('%Y-%m-%d') if pd.notnull(x) else None)
+                    except Exception:
+                        # Se a conversão falhar, converter para string como fallback
+                        df_copy[col] = df_copy[col].astype(str)
+                else:
+                    # Se a coluna só tiver nulos, converter para None
+                    df_copy[col] = None
+
+        # Converter todos os NaNs/Nones para None para compatibilidade JSON
+        # Usar replace é mais seguro que fillna para substituir por None
+        df_copy = df_copy.replace({pd.NA: None, np.nan: None})
+
         return JSONResponse(
             content=df_copy.to_dict(orient="records")
         )
-    
+
     except HTTPException as http_exc:
         raise http_exc
     except Exception as e:
-        print(f"Erro ao visualizar dados: {str(e)}")
-        return JSONResponse(
-            status_code=500,
-            content={
-                "message": "Erro no processamento",
-                "error": str(e)
-            }
-        )
+        # Logar o erro detalhado no servidor para depuração
+        import traceback
+        print(f"Erro detalhado ao visualizar dados: {traceback.format_exc()}")
+        # Retornar HTTPException para que o frontend receba um erro 500 claro
+        raise HTTPException(
+             status_code=500,
+             detail=f"Erro interno do servidor ao processar a visualização de dados: {str(e)}"
+         )
