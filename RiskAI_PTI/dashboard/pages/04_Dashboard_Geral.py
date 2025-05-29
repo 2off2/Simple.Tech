@@ -8,7 +8,7 @@ import logging
 
 # Configuração da página
 st.set_page_config(
-    page_title="Dashboard Geral - RiskAI",
+    page_title="Dashboard Geral - Simple",
     page_icon="📊",
     layout="wide"
 )
@@ -16,7 +16,7 @@ st.set_page_config(
 # URL base da API
 API_BASE_URL = "http://localhost:8000"
 
-st.title("📊 Dashboard Geral - RiskAI")
+st.title("📊 Dashboard Geral - Simple")
 
 # Funções auxiliares com melhor tratamento de erro
 @st.cache_data(ttl=60)  # Cache por 1 minuto
@@ -264,7 +264,7 @@ except Exception as e:
     st.error(f"❌ Erro ao gerar gráficos: {str(e)}")
 
 # Análise temporal
-st.subheader("📅 Análise Temporal")
+st.subheader("Análise Temporal")
 
 try:
     col1, col2, col3 = st.columns(3)
@@ -338,7 +338,7 @@ except Exception as e:
     st.error(f"❌ Erro na análise de risco: {str(e)}")
 
 # Tabela de dados recentes
-st.subheader("📋 Transações Recentes")
+st.subheader("Transações Recentes")
 
 try:
     if len(df_data) > 0:
@@ -374,40 +374,13 @@ try:
 except Exception as e:
     st.error(f"❌ Erro ao exibir transações recentes: {str(e)}")
 
-# Ações rápidas
-st.subheader("⚡ Ações Rápidas")
-
-col1, col2, col3, col4 = st.columns(4)
-
-with col1:
-    if st.button("📈 Gerar Previsão 30 dias"):
-        st.switch_page("pages/02_Previsao.py")
-
-with col2:
-    if st.button("🎲 Executar Simulação"):
-        st.switch_page("pages/03_Simulacao.py")
-
-with col3:
-    if st.button("📤 Carregar Novos Dados"):
-        st.switch_page("pages/01_Upload.py")
-
-with col4:
-    # Botão para exportar dados
-    if len(df_data) > 0:
-        csv_data = df_data.to_csv(index=False)
-        st.download_button(
-            label="📥 Exportar Dados",
-            data=csv_data,
-            file_name=f"dados_financeiros_{datetime.now().strftime('%Y%m%d')}.csv",
-            mime="text/csv"
-        )
 
 # Rodapé
 st.markdown("---")
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    st.caption("🤖 RiskAI - Dashboard Financeiro")
+    st.caption("Simple - Dashboard Financeiro")
 with col2:
     st.caption(f"📊 {len(df_data)} transações analisadas")
 with col3:

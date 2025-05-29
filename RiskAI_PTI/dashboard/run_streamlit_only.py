@@ -13,14 +13,14 @@ from pathlib import Path
 
 def main():
     """Executa apenas o dashboard Streamlit"""
-    print("🎨 Iniciando Dashboard Streamlit...")
+    print("Iniciando Dashboard Streamlit...")
     
     try:
         # Navegar para o diretório do projeto
         project_root = Path(__file__).parent.parent
         os.chdir(project_root)
         
-        print("📂 Diretório atual:", os.getcwd())
+        print("Diretório atual:", os.getcwd())
         
         # Aguardar um pouco e abrir o navegador
         def open_browser_delayed():
@@ -43,7 +43,7 @@ def main():
         
     except Exception as e:
         print(f"❌ Erro ao iniciar Dashboard: {e}")
-        print("💡 Tente executar manualmente:")
+        print(" Tente executar manualmente:")
         print("   streamlit run dashboard/app.py --server.port 8501")
 
 if __name__ == "__main__":

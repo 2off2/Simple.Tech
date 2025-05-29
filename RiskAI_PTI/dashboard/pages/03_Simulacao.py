@@ -6,15 +6,14 @@ import plotly.graph_objects as go
 
 # Configuração da página
 st.set_page_config(
-    page_title="Simulação de Cenários - RiskAI",
-    page_icon="🎲",
+    page_title="Simulação de Cenários - Simple",
     layout="wide"
 )
 
 # URL base da API
 API_BASE_URL = "http://localhost:8000"
 
-st.title("🎲 Simulação de Cenários Monte Carlo")
+st.title("Simulação de Cenários Monte Carlo")
 
 st.markdown("""
 Esta página permite simular diferentes cenários financeiros usando o método Monte Carlo.
@@ -93,7 +92,7 @@ if use_custom_balance:
     )
 
 # Botão para executar simulação
-if st.button("🎯 Executar Simulação de Cenários", type="primary"):
+if st.button("Executar Simulação de Cenários", type="primary"):
     with st.spinner(f"Executando {num_simulacoes} simulações para {dias_simulacao} dias..."):
         try:
             # Preparar payload

@@ -5,7 +5,7 @@ import io
 
 # Configuração da página
 st.set_page_config(
-    page_title="Upload de Dados - RiskAI",
+    page_title="Upload de Dados - Simple",
     page_icon="📤",
     layout="wide"
 )
@@ -89,7 +89,7 @@ if uploaded_file is not None:
         uploaded_file.seek(0)
         
         # Botão para processar
-        if st.button("🚀 Processar Arquivo", type="primary"):
+        if st.button("Processar Arquivo", type="primary"):
             with st.spinner("Enviando arquivo para processamento..."):
                 try:
                     # Preparar arquivo para upload
@@ -130,7 +130,7 @@ if uploaded_file is not None:
         st.error(f"❌ Erro ao ler arquivo: {str(e)}")
 
 # Exemplo de arquivo CSV
-st.subheader("📋 Exemplo de Arquivo CSV")
+st.subheader("Exemplo de Arquivo CSV")
 st.markdown("Você pode usar este exemplo como modelo:")
 
 example_data = {
@@ -152,7 +152,7 @@ st.dataframe(example_df)
 # Botão para download do exemplo
 csv_example = example_df.to_csv(index=False)
 st.download_button(
-    label="📥 Baixar Exemplo CSV",
+    label="Baixar Exemplo CSV",
     data=csv_example,
     file_name="exemplo_dados_financeiros.csv",
     mime="text/csv"

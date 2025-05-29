@@ -8,7 +8,7 @@ API_BASE_URL = "http://localhost:8000"
 
 # --- Configuração da Página Principal do Streamlit ---
 st.set_page_config(
-    page_title="RiskAI - Dashboard Financeiro",
+    page_title="Simple - Dashboard Financeiro",
     page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -57,7 +57,7 @@ def get_processed_data_from_api(limit=5):
         return None
 
 # --- Verificar Status da API ---
-st.title("RiskAI - Análise Preditiva de Fluxo de Caixa")
+st.title("Simple - Análise Preditiva de Fluxo de Caixa")
 
 api_status = test_api_connection()
 if api_status:
@@ -68,7 +68,7 @@ else:
     st.stop()
 
 st.markdown("""
-RiskAI é sua ferramenta inteligente para análise preditiva de fluxo de caixa, identificação de riscos financeiros e simulação de cenários de negócios. 
+Simple é sua ferramenta inteligente para análise preditiva de fluxo de caixa, identificação de riscos financeiros e simulação de cenários de negócios. 
 Navegue pelas seções no menu lateral para explorar as funcionalidades.
 
 **Principais Funcionalidades:**
@@ -80,9 +80,8 @@ Navegue pelas seções no menu lateral para explorar as funcionalidades.
 Comece fazendo o upload dos seus dados na página "1. Upload de Dados".
 """)
 
-st.sidebar.image("https://img.icons8.com/plasticine/100/000000/financial-growth-analysis.png", caption="RiskAI v1.0")
 st.sidebar.markdown("---")
-st.sidebar.header("Navegação Principal")
+
 
 # --- Seção de Upload de Arquivo na Sidebar ---
 st.sidebar.markdown("---")
@@ -165,7 +164,7 @@ if not st.session_state.uploaded_file_name:
     """)
 
 st.markdown("---")
-st.caption("RiskAI PTI - Desenvolvimento de Software com IA - 2024")
+st.caption("Simple - Desenvolvimento de Software com IA - 2024")
 
 # Para executar esta aplicação Streamlit:
 # 1. Certifique-se de que a API FastAPI está rodando: uvicorn api.main:app --reload

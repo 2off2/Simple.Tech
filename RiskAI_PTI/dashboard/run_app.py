@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 #!/usr/bin/env python3
 """
-Script para inicializar o RiskAI - API e Dashboard
+Script para inicializar o Simple - API e Dashboard
 Versão simplificada e mais robusta
 """
 
@@ -15,7 +15,7 @@ from pathlib import Path
 
 def run_api():
     """Executa a API FastAPI"""
-    print("🚀 Iniciando API FastAPI...")
+    print("Iniciando API FastAPI...")
     try:
         # Navegar para o diretório do projeto
         project_root = Path(__file__).parent.parent
@@ -37,7 +37,7 @@ def run_api():
 
 def run_dashboard():
     """Executa o Dashboard Streamlit"""
-    print("🎨 Iniciando Dashboard Streamlit...")
+    print("Iniciando Dashboard Streamlit...")
     try:
         # Aguardar a API inicializar
         time.sleep(8)
@@ -64,11 +64,11 @@ def open_browser():
     """Abre o navegador após um delay"""
     time.sleep(15)  # Aguarda os serviços inicializarem
     try:
-        print("🌐 Abrindo navegador...")
+        print("Abrindo navegador...")
         webbrowser.open("http://localhost:8501")
     except Exception as e:
         print(f"❌ Erro ao abrir navegador: {e}")
-        print("🔗 Acesse manualmente: http://localhost:8501")
+        print("Acesse manualmente: http://localhost:8501")
 
 def check_dependencies():
     """Verifica se as dependências estão instaladas"""
@@ -92,7 +92,7 @@ def check_dependencies():
     
     if missing_packages:
         print(f"❌ Pacotes faltando: {', '.join(missing_packages)}")
-        print("📦 Instale com:")
+        print("Instale com:")
         for package in missing_packages:
             print(f"   pip install {package}")
         return False
@@ -101,7 +101,7 @@ def check_dependencies():
 
 def main():
     """Função principal"""
-    print("🔧 RiskAI - Inicializando aplicação...")
+    print("Simple - Inicializando aplicação...")
     
     # Verificar dependências
     if not check_dependencies():
@@ -111,22 +111,22 @@ def main():
         # Iniciar API
         api_process = run_api()
         if api_process:
-            print("✅ API iniciada em http://localhost:8000")
+            print("API iniciada em http://localhost:8000")
         
         # Iniciar Dashboard
         dashboard_process = run_dashboard()
         if dashboard_process:
-            print("✅ Dashboard iniciado em http://localhost:8501")
+            print("Dashboard iniciado em http://localhost:8501")
         
         # Abrir navegador em thread separada
         browser_thread = threading.Thread(target=open_browser, daemon=True)
         browser_thread.start()
         
-        print("\n🎉 RiskAI está rodando!")
-        print("📊 Dashboard: http://localhost:8501")
-        print("🔗 API: http://localhost:8000")
-        print("📖 Documentação da API: http://localhost:8000/docs")
-        print("\n💡 O navegador será aberto automaticamente em alguns segundos...")
+        print("Simple está rodando!")
+        print("Dashboard: http://localhost:8501")
+        print("API: http://localhost:8000")
+        print("Documentação da API: http://localhost:8000/docs")
+        print("\nO navegador será aberto automaticamente em alguns segundos...")
         print("Pressione Ctrl+C para parar...")
         
         # Manter o script rodando
@@ -142,7 +142,7 @@ def main():
                 break
             
     except KeyboardInterrupt:
-        print("\n🛑 Parando aplicação...")
+        print("Parando aplicação...")
         
         # Finalizar processos
         if 'api_process' in locals() and api_process:
@@ -150,7 +150,7 @@ def main():
         if 'dashboard_process' in locals() and dashboard_process:
             dashboard_process.terminate()
             
-        print("✅ Aplicação finalizada")
+        print("Aplicação finalizada")
         sys.exit(0)
     except Exception as e:
         print(f"❌ Erro inesperado: {e}")

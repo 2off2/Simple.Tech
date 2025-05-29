@@ -6,15 +6,14 @@ import plotly.graph_objects as go
 
 # Configuração da página
 st.set_page_config(
-    page_title="Previsão de Fluxo de Caixa - RiskAI",
-    page_icon="📈",
+    page_title="Previsão de Fluxo de Caixa - Simple",
     layout="wide"
 )
 
 # URL base da API
 API_BASE_URL = "http://localhost:8000"
 
-st.title("📈 Previsão de Fluxo de Caixa")
+st.title("Previsão de Fluxo de Caixa")
 
 # Verificar se há dados carregados
 def check_data_loaded():
@@ -53,7 +52,7 @@ with col2:
     )
 
 # Botão para gerar previsão
-if st.button("🔮 Gerar Previsão", type="primary"):
+if st.button("Gerar Previsão", type="primary"):
     with st.spinner("Gerando previsões..."):
         try:
             # Fazer requisição para API
@@ -189,7 +188,7 @@ st.markdown("""
 if 'df_predictions' in locals():
     csv_data = df_predictions.to_csv(index=False)
     st.download_button(
-        label="📥 Baixar Previsões (CSV)",
+        label="Baixar Previsões (CSV)",
         data=csv_data,
         file_name=f"previsoes_fluxo_caixa_{days_to_predict}_dias.csv",
         mime="text/csv"
