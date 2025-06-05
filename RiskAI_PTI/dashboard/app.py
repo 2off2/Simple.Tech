@@ -80,49 +80,7 @@ Navegue pelas seções no menu lateral para explorar as funcionalidades.
 Comece fazendo o upload dos seus dados na página "1. Upload de Dados".
 """)
 
-st.sidebar.markdown("---")
 
-
-# --- Seção de Upload de Arquivo na Sidebar ---
-st.sidebar.markdown("---")
-st.sidebar.subheader("Upload Rápido de CSV")
-
-# Usar st.file_uploader na sidebar
-with st.sidebar.expander("Carregar arquivo CSV", expanded=False):
-    uploaded_file = st.file_uploader(
-        "Selecione seu arquivo CSV financeiro", 
-        type=["csv"],
-        key="main_uploader",
-        help="O arquivo deve conter colunas como: data, descricao, entrada, saida."
-    )
-
-    if uploaded_file is not None:
-        if st.button("Processar Arquivo via API", key="main_process_button"):
-            with st.spinner("Enviando e processando arquivo..."):
-                st.session_state.api_error = None
-                api_response = upload_file_to_api(uploaded_file)
-                if api_response and "message" in api_response and "sucesso" in api_response["message"].lower():
-                    st.session_state.uploaded_file_name = api_response.get("filename")
-                    st.sidebar.success(f"Arquivo '{st.session_state.uploaded_file_name}' processado!")
-                    
-                    # Tentar buscar uma prévia dos dados processados
-                    preview_data = get_processed_data_from_api(limit=5)
-                    if preview_data:
-                        st.session_state.processed_data_preview = pd.DataFrame(preview_data)
-                    else:
-                        st.session_state.processed_data_preview = None
-                        st.sidebar.warning("Não foi possível buscar a prévia dos dados processados.")
-                elif api_response and api_response.get("error"):
-                    st.sidebar.error(f"Erro da API: {api_response.get('error')}")
-                    st.session_state.uploaded_file_name = None
-                    st.session_state.processed_data_preview = None
-                else:
-                    st.sidebar.error("Falha ao processar o arquivo via API. Verifique os logs da API.")
-                    st.session_state.uploaded_file_name = None
-                    st.session_state.processed_data_preview = None
-            
-            if st.session_state.api_error:
-                st.sidebar.error(st.session_state.api_error)
 
 # --- Exibir Status do Upload ---
 if st.session_state.uploaded_file_name:
