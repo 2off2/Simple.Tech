@@ -1,4 +1,4 @@
-# RiskAI - Análise Preditiva de Fluxo de Caixa
+# Simple - Análise Preditiva de Fluxo de Caixa
 
 Sistema inteligente para análise de risco financeiro, previsão de fluxo de caixa e simulação de cenários.
 
