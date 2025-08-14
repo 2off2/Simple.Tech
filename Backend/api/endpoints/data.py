@@ -13,6 +13,9 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../.
 # Importar o estado compartilhado
 from api.endpoints import state
 
+# Importar o cliente Supabase que criamos
+from core.supabase_client import supabase
+
 # Criar diretório para uploads se não existir
 if not os.path.exists(state.UPLOAD_DIR):
     os.makedirs(state.UPLOAD_DIR)
@@ -135,10 +138,23 @@ async def upload_csv_file(file: UploadFile = File(...)):
         if df is None:
             raise HTTPException(status_code=400, detail="Erro ao processar o arquivo CSV. Verifique o formato e conteúdo.")
         
-        # Armazenar no estado global
-        state.global_processed_df = df
-        state.global_prediction_model = None  # Resetar modelo se novos dados forem carregados
-        state.global_historical_stats = calcular_estatisticas_historicas(df)
+        # Em vez de salvar em 'state', vamos salvar no Supabase
+        
+        # 1. Converter o DataFrame para uma lista de dicionários
+        #    Supabase espera datas como strings no formato ISO
+        df_dict = df.astype(object).where(pd.notnull(df), None).to_dict(orient='records')
+        for row in df_dict:
+            for key, value in row.items():
+                if isinstance(value, pd.Timestamp):
+                    row[key] = value.isoformat()
+
+        # 2. Inserir os dados na tabela do Supabase
+        #    (assumindo que você criou uma tabela chamada 'transacoes')
+        response = supabase.table('transacoes').insert(df_dict).execute()
+
+        # 3. Verificar se houve erro na inserção
+        if hasattr(response, 'error') and response.error:
+            raise HTTPException(status_code=500, detail=f"Erro ao salvar no Supabase: {response.error.message}")
 
         return FileUploadResponse(
             filename=file.filename, 

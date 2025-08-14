@@ -3,6 +3,7 @@ Aplicação principal FastAPI para RiskAI_PTI
 """
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+import uvicorn
 from datetime import datetime
 import os
 import sys
@@ -107,3 +108,23 @@ async def host_config():
                 "message": str(e)
             }
         )
+
+app = FastAPI(title="Simple.Tech API")
+
+# Permitir conexão com o frontend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],  # URL do Vite
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+@app.get("/")
+def read_root():
+    return {"message": "Simple.Tech API funcionando!"}
+
+@app.post("/analyze")
+def analyze_data(data: dict):
+    # Aqui você chama seus algoritmos Python
+    result = sua_funcao_de_analise(data)
+    return {"result": result, "status": "success"}
